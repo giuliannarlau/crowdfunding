@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Apology
+{% endblock %}
+
+
+{% block main %}
+
+  <div class="row m-5 p-5 text-start gap-3">
+
+    <div>
+      <h1 class="fs-3">{{ top }} Bad Request</h1>
+      <p class="fs-4">{{ bottom }}</p>
+    </div>
+
+    <hr class="mb-3 w-25">
+
+    <div>
+      <button type="button" class="btn btn-outline-light btn-lg" href="">Return</button>
+    </div>
+
+  </div>
+
+{% endblock %}

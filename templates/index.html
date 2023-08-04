@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block main %}
+
+  <div class="container" id="homepageContainer">
+
+      <div class="row">
+
+        <div class="col-lg-6 col-md mb-3">
+          <h1>
+            Where crypto funds a better future
+          </h1>
+          <p class="text-start fs-4 mb-5">
+            Big company announcement or simple sub-header taking two or more lines. Text for the third line.
+          </p>
+          <div class="d-flex flex-column flex-md-row justify-content-between">
+            <a class="btn btn-light btn-xl" href="/projects">BACK A PROJECT</a>
+            <div class="vr"></div>
+            <a class="btn btn-outline-light btn-xl" name="{{ session['public_key'] }}" onclick="checkUser(this)">START A PROJECT</a>
+          </div>
+        </div>
+
+        <div class="col-lg-6 col-lg text-center">
+          <img src="{{ url_for('static', filename='theodora.jpg') }}" class="img-fluid">
+        </div>
+
+      </div>
+
+      <!-- Info cards section -->
+      <div class="row justify-content-between">
+
+        <div class="col-sm-4 col-sm">
+          <div class="info-card">
+            <div class="info-card-title">{{ projects_list | count }}</div>
+            <p class="info-card-text">Projects funded</p>
+          </div>
+        </div>
+
+        <div class="col-sm-4 col-sm">
+          <div class="info-card">
+              <div class="info-card-title">{{ projects_list | sum(attribute='total_donations') }}</div>
+              <p class="info-card-text">Donated</p>
+          </div>
+        </div>
+
+        <div class="col-sm-4 col-sm">
+          <div class="info-card">
+            <div class="info-card-title">{{ projects_list | sum(attribute='goal') }}</div>
+            <p class="info-card-text">Funding goal</p>
+          </div>
+        </div>
+
+      </div>
+
+    <div class="text-start mt-5">
+      <h2 class="ms-3">Check out some of our projects</h2>
+    </div>
+
+    <hr class="mb-5">
+
+    <!-- Image cards section-->
+    <div class="row justify-content-center">
+
+      {% for project in projects_list %}
+        <div class="col-md-4 col-md mb-3">
+          <div class="card">
+            <img class="card-img" src="{{ url_for('static', filename='uploads/' + project['image_path']) }}" alt="project image">
+            <div class="card-body d-flex">
+              <p class="card-text w-50 my-auto">{{ project["project_id"] }} {{ project["name"] }} | {{ project["category"] }}</p>
+              <button class="btn btn-outline-dark" onclick="location.href='{{ url_for('project_page', project_id=project['project_id']) }}'">See project</button>
+            </div>
+            <div class="card-footer">
+              {% if project["public_key"] == session["public_key"] %}
+                <button disabled class="btn btn-primary btn-sm mb-2">Your project</button>
+              {% endif %}
+              <button disabled class="btn btn-dark btn-sm mb-2"> {{ project["days_left"] }}</button>
+              <button disabled class="btn btn-success btn-sm mb-2">{{ project["funding_progress"] }} funded</button>
+            </div>
+          </div>
+        </div> 
+        {% if (loop.index % 3 == 0) and (loop.index != 0) %}
+          <div class="w-100 my-3"></div>
+        {% endif %}
+      {% endfor %}
+
+    </div>
+
+  </div>
+
+{% endblock %}
+

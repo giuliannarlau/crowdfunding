@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    About Us
+{% endblock %}
+
+{% block main %}
+
+<div class="container-fluid w-75">
+    <h1 class="mt-5">Where crypto funds a better future.</h3>
+    <div class="row gx-5">
+        <div class="col-lg-6 mt-5" id="pic_col">
+            <img src="{{ url_for('static', filename='pik.jpg') }}" class="img-fluid">
+        </div>
+        <div class="col-lg-6 text-start mt-5">
+            <h2 class="fs-2">About us</h2>
+            <p class="fs-4">At FundWise, we believe in the power of collective action and the potential of innovative projects. We have created a revolutionary crowdfunding platform that opens up a world of opportunities for both project creators and supporters. Our unique twist? We embrace the transformative potential of cryptocurrency.</p>
+        </div>
+    </div>
+    <div class="row m-auto fs-4 gx-5 w-75">
+        <h3 class="fs-2 mt-5 mb-4">Why choose FundWise?</h3>
+        <ul class="list-group ms-2 mb-3">
+            <li class="list-group-item">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold my-3">Crypto Compatibility</div>
+                    Say goodbye to traditional payment methods and embrace the decentralized world. FundWise seamlessly integrates with popular crypto wallets, allowing you to contribute directly using your preferred digital currencies.
+                </div>
+            </li>
+            <li class="list-group-item">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold my-3">Global Reach</div>
+                    SWe break down geographical barriers and connect project creators with a global community of backers. No matter where you are in the world, you can support projects that align with your passions and values.
+                </div>
+            </li>
+            <li class="list-group-item">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold my-3">Enhanced Security</div>
+                    Our platform prioritizes the highest standards of security and encryption protocols, ensuring that your crypto assets remain safe throughout the donation process. You can have peace of mind knowing that your contributions are protected.
+                </div>
+            </li>
+            <li class="list-group-item">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold my-3">Transparency and Accountability</div>
+                    We foster a culture of transparency, where project creators are held accountable for their progress and backers can track the impact of their contributions. Our smart contract technology ensures that funds are allocated appropriately and project milestones are met.
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold mb-y">Diverse Project Portfolio</div>
+                    FundWise hosts a diverse range of projects across various sectors, including technology, arts, sustainability, and more. Explore exciting ventures, support groundbreaking innovations, and be a part of shaping the future.
+                </div>
+            </li>
+        </li>
+    </ul>
+</div>
+
+{% endblock %}

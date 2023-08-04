@@ -1,0 +1,196 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Project Page
+{% endblock %}
+
+{% block main %}
+
+  <div class="container" id="projectPageContainer">
+
+    <!-- Image card -->
+    <div class="row">
+
+      <div class="col-lg-5"> 
+        <div class="card mb-3 w-75">
+          <img class="card-img" id="projectImage" src="{{ url_for('static', filename='uploads/' + project['image_path']) }}" alt="project image">
+            <div class="card-text">
+            <div class="card-body">
+              <div class="card-text">
+                {{ project["project_id"] }} | {{ project["name"] }} | {{ project["category"] }}
+              </div>
+            </div>
+            </div>
+          </div>
+      </div>
+
+      <!-- Info cards with project data -->
+      <div class="col-lg-7">
+
+        <div class="row">
+
+          <div class="col">
+            <div class="info-card w-75">
+              <div class="info-card-title">{{ project['total_donations'] }}</div>
+              <p class="info-card-text">Donated</p>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="info-card w-75">
+              <div class="info-card-title">{{ project['goal'] }}</div>
+              <p class="info-card-text">Goal</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Project description -->
+        <div class="row text-start mt-5">
+
+          <div class="col">
+            <p class="fs-5 mw-50">
+            {{ project["description"] }}
+            </p>
+          </div>
+
+        </div>
+
+        <hr class="hr">
+
+        {% if project["status"] == "active" %}
+          {% if project["public_key"] != session["public_key"] %}
+            <!-- Customized message and donation collapse -->
+            <div class="row">
+
+              <div class="col">
+                <p class="text-center fs-5">
+                  This project already reached its goal, but you can donate until {{ project["expire_date"] }}
+                </p>
+              </div>
+
+            </div>
+
+            <div class="d-flex flex-column flex-md-row ">
+
+              <div class="col-sm my-auto">
+                <button type="button" class="btn btn-light p-3" id="backProjectButton" data-bs-toggle="collapse" data-bs-target="#donationCollapse" aria-expanded="false" aria-controls="collapseExample"  name="{{ session['public_key'] }}" onclick="checkUser(this)">
+                  BACK THIS PROJECT
+                </button>
+              </div>
+
+              <div class="vr"></div>
+
+              <div class="col-sm">
+                <div class="collapse pe-1" id="donationCollapse">
+                  <form class="d-flex p-2">
+                    <input required type="number" class="form-control mx-3 w-50" id="donationAmount" name="donationAmount" min="1" placeholder="Amount">
+                    <button type="submit" class="btn btn-light" id="donateButton" onclick="processDonation()">DONATE</button>
+                  </form>
+                </div>
+              </div>
+
+            </div>
+
+          {% else %}
+            <div class="row">
+
+              <div class="col">
+                <p class="text-start fs-5">
+                  Your project's goal wasn't reached yet, but you have until {{ project["expire_date"] }} to receive donations.
+                </p>
+                <button class="btn btn-light mx-auto p-3 w-25" data-bs-toggle="modal" data-bs-target="#editProjectModal">
+                  EDIT PROJECT
+                </button>
+              </div>
+
+            </div>
+          {% endif %}
+
+        <!-- Expired projects info (just for creator's account) -->
+        {% else %}
+          <div class="row">
+
+            <div class="col">
+              {% if project["status"] == "funded" %}
+                <p class="text-start fs-5">
+                  Congrats! Your project expired at {{ project["expire_date"] }} and reached <b>{{ project["donations"] }} donations</b>.
+                </p>
+              {% elif project["status"] == "fund" %}
+                <p class="text-start fs-5">
+                  Congrats! Your project expired at {{ project["expire_date"] }} and reached <b>{{ project["donations"] }} donations</b>. Soon your funds will be tranfered to your Stellar account.
+                </p>
+              {% else %}
+                <p class="text-start fs-5">
+                  Unfortunally your project <b>expired at {{ project["expire_date"] }} </b> and didn't reached the goal.
+                </p>
+              {% endif %}
+            </div>
+
+          </div>
+        {% endif %}
+
+        <hr class="mt-4">
+
+      </div>
+
+    </div>
+
+    <!-- Modal to edit project data -->
+    <div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit project</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <form action="/project/{{ project['project_id'] }}" method="post" id="editProjectForm">
+            <input hidden type="text" class="form-control-plaintext" id="projectId" value="{{ project['project_id'] }}">
+
+            <div class="input-group flex-nowrap">
+              <span class="input-group-text">NAME</span>
+              <input required type="text" class="form-control" id="newName" name="newName" value="{{ project['name'] }}" minlength="3" maxlength="20">
+            </div>
+
+            <div class="input-group flex-nowrap">
+              <span class="input-group-text">CATEGORY</span>
+              <select required class="form-select" id="newCategory" name="newCategory">
+                <option disabled selected>Select a new category</option>
+                {% for category in categories_list %}
+                    <option> {{ category }} </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="input-group flex-nowrap">
+              <span class="input-group-text">GOAL</span>
+              <input required type="number" min="1" class="form-control" id="newGoal" name="newGoal" value="{{ project['goal'] }}">
+            </div>
+
+            <div class="input-group flex-nowrap">
+              <span class="input-group-text">EXPIRE DATE</span>
+              <input required type="date" class="form-control" id="newExpireDate" name="newExpireDate" value="{{ project['expire_date'] }}" min="" onclick="getCurrentDate(this)">
+            </div>
+
+            <div class="input-textarea">
+              <span class="span-textarea" minlength="5" maxlength="150">DESCRIPTION</span>
+              <textarea required type="text" class="form-control" id="newDescription" name="newDescription"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-footer align-self-center w-25">
+            <button type="submit" form="editProjectForm" class="btn btn-dark" id="editProjectButton">SAVE CHANGES</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    </div>
+
+  </div>
+
+
+{% endblock %}
+
