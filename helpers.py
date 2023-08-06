@@ -1,22 +1,27 @@
 import os
 import base64
+import boto3
 import requests
 import urllib.parse
 import sys
 import secrets
+import mysql.connector
 
 import time
 import math
 import werkzeug.exceptions as ex
 
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
-from io import BytesIO
-from PIL import Image
+#from io import BytesIO
+#from PIL import Image
 
 from stellar_sdk import Asset, Keypair, Network, Server, TransactionBuilder
 from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
+
+load_dotenv()
 
 UPLOAD_FOLDER = "./static/uploads"
 ALLOWED_EXTENSIONS = set(["jpg", "png", "jpeg"])
@@ -32,6 +37,21 @@ admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
 categories_list = ["Books", "Games", "Music", "Technology", "All"]
 status_list = ["Active", "Fund", "Refund", "Successful", "Unsuccessful"]
 sort_list = ["Category", "Name", "Status", "All"]
+
+db_host = os.environ['DB_HOST']
+db_port = os.environ['DB_PORT']
+db_user = os.environ['DB_USER']
+db_password = os.environ['DB_PASSWORD']
+db_name = os.environ['DB_NAME']
+
+
+conn = mysql.connector.connect(
+    host=db_host,
+    user=db_user,
+    password=db_password,
+    database=db_name,
+    port=db_port
+)
 
 
 def format_date(date, date_type):
@@ -52,19 +72,33 @@ def format_date(date, date_type):
 
 def calculate_project_progress(projects_list):
     """ Calculate percentage of funding progress """
+    
+    db = conn.cursor(dictionary=True)
+    try:
+        for project in projects_list:
 
-    for project in projects_list:
+            # Get total amount of donations
+            query = "SELECT SUM(amount) as donations FROM transactions WHERE project_id = %s AND type = %s"
+            params = (project["project_id"], "donation")
+            db.execute(query, params)
 
-        # Get total amount of donations
-        amount_donations = db.execute("SELECT SUM(amount) as donations FROM transactions WHERE project_id = ? AND type = ?", project["project_id"], "donation")[0]
-        if not amount_donations["donations"]:
-            amount_donations["donations"] = 0
-        project["total_donations"] = amount_donations["donations"]
+            amount_donations = db.fetchone()
+            if not amount_donations["donations"]:
+                amount_donations["donations"] = 0
+            project["total_donations"] = amount_donations["donations"]
 
-        # Calculate percentage
-        project["funding_progress"] = f'{math.floor(project["total_donations"] / project["goal"] * 100)}%'
+            # Calculate percentage
+            project["funding_progress"] = f'{math.floor(project["total_donations"] / project["goal"] * 100)}%'
+        
+        return projects_list
 
-    return projects_list
+    except Exception as e:
+        print("An error occurred calculatinf project progress:", str(e))
+        return None
+
+    finally:
+        # Fechando o cursor
+        db.close()
 
 
 def get_const_list(const_list):
@@ -125,12 +159,20 @@ def validate_input(project):
 
 def search_donations_history(name="", category="", status=""):
     """ Search for detailed donatioapologns history to display on myaccount """
-    projects_list = db.execute(
+
+    db = conn.cursor(dictionary=True)
+    
+    query = (
         "SELECT t.project_id, p.name, p.category, t.amount, t.timestamp, t.hash FROM transactions t "
         "JOIN projects p ON t.project_id = p.id "
-        "WHERE t.public_key_sender = ? AND type = ? AND name LIKE ? AND category LIKE ? AND status LIKE ?",
-        session["public_key"], "donation",  "%" + name + "%", "%" + category + "%", "%" + status + "%"
-        )
+        "WHERE t.public_key_sender = %s AND type = %s AND name LIKE %s AND category LIKE %s AND status LIKE %s"
+    )
+    params = (session["public_key"], "donation", "%" + name + "%", "%" + category + "%", "%" + status + "%")
+    db.execute(query, params)
+
+    # Buscando todos os resultados e fechando o cursor
+    projects_list = db.fetchall()
+    db.close()
 
     for project in projects_list:
         project["timestamp"] = format_date(project["timestamp"], "medium_string")
@@ -143,6 +185,7 @@ def search_projects(name="", category="", status="", id=""):
      Parameters are optional, returning all projects if none is passed """
 
     projects_list = []
+    db = conn.cursor(dictionary=True)
 
     if category in ["All", "all"]:
         category = ""
@@ -150,9 +193,23 @@ def search_projects(name="", category="", status="", id=""):
         status = ""
 
     if not id:
-        projects_list = db.execute("SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects WHERE name LIKE ? AND category LIKE ? AND status LIKE ? ORDER BY status", "%" + name + "%", "%" + category + "%", "%" + status + "%")
+        query = (
+            "SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects "
+            "WHERE name LIKE %s AND category LIKE %s AND status LIKE %s ORDER BY status"
+        )
+        params = ("%" + name + "%", "%" + category + "%", "%" + status + "%")
     else:
-        projects_list = db.execute("SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects WHERE name LIKE ? AND category LIKE ? AND status LIKE ? AND id = ? ORDER BY status", "%" + name + "%", "%" + category + "%", "%" + status + "%", id)
+        query = (
+            "SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects "
+            "WHERE name LIKE %s AND category LIKE %s AND status LIKE %s AND id = %s ORDER BY status"
+        )
+        params = ("%" + name + "%", "%" + category + "%", "%" + status + "%", id)
+
+    db.execute(query, params)
+    
+    # Buscando todos os resultados e fechando o cursor
+    projects_list = db.fetchall()
+    db.close()
 
     for project in projects_list:
 
@@ -180,22 +237,47 @@ def search_projects(name="", category="", status="", id=""):
 def search_refund_operations(projects_list):
 
     refundable_projects = []
+    db = conn.cursor(dictionary=True)
+    
+    
     for project in projects_list:
-        doners_operations = db.execute("SELECT project_id, public_key_sender AS public_key, SUM(amount) AS total_donations FROM transactions WHERE project_id = ? AND type = ? GROUP BY public_key_sender", project["project_id"], "donation")
+        query = (
+            "SELECT project_id, public_key_sender AS public_key, SUM(amount) AS total_donations "
+            "FROM transactions WHERE project_id = %s AND type = %s GROUP BY public_key_sender"
+        )
+        params = (project["project_id"], "donation")
+        db.execute(query, params)
+
+        doners_operations = db.fetchall()
+        
         for operation in doners_operations:
             operation["name"] = project["name"]
         refundable_projects.extend(doners_operations)
+
+    # Fechando o cursor
+    db.close()
 
     return refundable_projects
 
 
 def search_supported_projects():
-
     # Search for projects supported by user
-    projects_list = db.execute(
+
+    db = conn.cursor(dictionary=True)
+
+    query = (
         "SELECT t.project_id, p.name, p.category, p.status, p.goal, SUM(amount) AS your_donations FROM transactions t "
-         "JOIN projects p ON t.project_id = p.id "
-         "WHERE t.public_key_sender = ? AND t.type = ? GROUP BY t.project_id ORDER BY status", session["public_key"], "donation")
+        "JOIN projects p ON t.project_id = p.id "
+        "WHERE t.public_key_sender = %s AND t.type = %s GROUP BY t.project_id ORDER BY status"
+    )
+    params = (session["public_key"], "donation")
+
+    db.execute(query, params)
+
+    projects_list = db.fetchall()
+
+    # Fechando o cursor
+    db.close()
 
     return calculate_project_progress(projects_list)
 
@@ -206,46 +288,78 @@ def update_database_status():
     """ Updates project's status when expired.
     From active to: fund, refund or unsuccessful """
 
-    # Get all projects
-    projects_list = calculate_project_progress(db.execute("SELECT id AS project_id, expire_date, goal FROM projects"))
+    try:
+        db = conn.cursor(dictionary=True)
 
-    for project in projects_list:
-        project["expire_date"] = format_date(project["expire_date"], "long_datetime")
+        # Get all projects
+        db.execute("SELECT id AS project_id, expire_date, goal FROM projects")
+        projects_list = db.fetchall()
+        projects_list = calculate_project_progress(projects_list)
 
-        # Update status of expired projects
-        if project["expire_date"] < datetime.today():
+        for project in projects_list:
+            project["expire_date"] = format_date(project["expire_date"], "long_datetime")
 
-            # Projects that achieved their funding goal will be funded by admin
-            if project["total_donations"] >= project["goal"]:
-                db.execute("UPDATE projects SET status = ? WHERE id = ?", "fund", project["project_id"])
+            # Update status of expired projects
+            if project["expire_date"] < datetime.today():
 
-            # Projects with no amount of donations pass directly to unsuccessful
-            elif project["total_donations"] == 0:
-                db.execute("UPDATE projects SET status = ? WHERE id = ?", "unsuccessful", project["project_id"])
+                # Projects that achieved their funding goal will be funded by admin
+                if project["total_donations"] >= project["goal"]:
+                    db.execute("UPDATE projects SET status = %s WHERE id = %s", ("fund", project["project_id"]))
 
-            # Projects that didn't achieve their funding goal will have their donations returned to backers
-            else:
-                db.execute("UPDATE projects SET status = ? WHERE id = ?", "refund", project["project_id"])
+                # Projects with no amount of donations pass directly to unsuccessful
+                elif project["total_donations"] == 0:
+                    db.execute("UPDATE projects SET status = %s WHERE id = %s", ("unsuccessful", project["project_id"]))
+
+                # Projects that didn't achieve their funding goal will have their donations returned to backers
+                else:
+                    db.execute("UPDATE projects SET status = %s WHERE id = %s", ("refund", project["project_id"]))
+        
+        # Fechando o cursor
+        db.close()
+
+    except Exception as e:
+        conn.rollback()
+        print(f"An error occurred: {e}")
+    finally:
+        db.close() 
 
 
-def update_transactions_database(temp_table, hash):
+def update_transactions_database(hash):
     """ Updates transactions table with donation data and project status after admin fund / refund projects"""
 
-    for operation in temp_table:
-        if operation["type"] == "donation":
-            public_key_sender = session["public_key"]
-            public_key_receiver = admin_account
-        else:
-            public_key_sender = admin_account
-            public_key_receiver = operation["destination_account"]
-            if operation["type"] == "fund":
-                operation["new_status"] = "successful"
+    try:
+        db = conn.cursor(dictionary=True)
+        db.execute("SELECT * FROM temp_operations")
+        temp_table = db.fetchall()
+
+        for operation in temp_table:
+            if operation["type"] == "donation":
+                public_key_sender = session["public_key"]
+                public_key_receiver = admin_account
             else:
-                operation["new_status"] = "unsuccessful"
-            db.execute("UPDATE projects SET status = ? WHERE id = ?", operation["new_status"], operation["project_id"])
+                public_key_sender = admin_account
+                public_key_receiver = operation["destination_account"]
+                if operation["type"] == "fund":
+                    operation["new_status"] = "successful"
+                else:
+                    operation["new_status"] = "unsuccessful"
+                
+                #db.execute("UPDATE projects SET status = ? WHERE id = ?", operation["new_status"], operation["project_id"])
+                query = "UPDATE projects SET status = %s WHERE id = %s"
+                params = (operation["new_status"], operation["project_id"])
+                db.execute(query, params)
 
-        db.execute("INSERT INTO transactions (project_id, amount, public_key_sender, public_key_receiver, hash, type) VALUES(?, ?, ?, ?, ?, ?)", operation["project_id"], operation["amount"], public_key_sender, public_key_receiver, hash, operation["type"])
+            #db.execute("INSERT INTO transactions (project_id, amount, public_key_sender, public_key_receiver, hash, type) VALUES(?, ?, ?, ?, ?, ?)", operation["project_id"], operation["amount"], public_key_sender, public_key_receiver, hash, operation["type"])
+            query = "INSERT INTO transactions (project_id, amount, public_key_sender, public_key_receiver, hash, type) VALUES(%s, %s, %s, %s, %s, %s)"
+            params = (operation["project_id"], operation["amount"], public_key_sender, public_key_receiver, hash, operation["type"])
+            db.execute(query, params)
 
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("An error occurred:", str(e))
+    finally:
+        db.close()
 
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -274,10 +388,15 @@ def upload_image(base64_img):
         random_hex = secrets.token_hex(8)
         filename = random_hex + ".png"
 
-        image = Image.open(BytesIO(image_bytes))
-        image_path = os.path.join(UPLOAD_FOLDER, filename)
-        image.save(image_path, "PNG")
-        return filename
+        bucket_name = 'cf-img-uploads'
+        s3_client = boto3.client('s3')
+        s3_client.put_object(Bucket='cf-img-uploads', Key=filename, Body=image_bytes, ContentType='image/png')
+        #image = Image.open(BytesIO(image_bytes))
+        #image_path = os.path.join(UPLOAD_FOLDER, filename)
+        #image.save(image_path, "PNG")
+        file_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
+
+        return file_url
 
     except Exception as e:
         print(e)

@@ -1,4 +1,5 @@
 import os
+import mysql.connector
 
 import stellar_sdk
 import ast
@@ -7,6 +8,7 @@ import requests
 import certifi
 
 from cs50 import SQL
+from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_session import Session
 
@@ -24,9 +26,24 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///crowdfunding.db")
+#db = SQL("sqlite:///crowdfunding.db")
 
 admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
+
+db_host = os.environ['DB_HOST']
+db_port = os.environ['DB_PORT']
+db_user = os.environ['DB_USER']
+db_password = os.environ['DB_PASSWORD']
+db_name = os.environ['DB_NAME']
+
+
+conn = mysql.connector.connect(
+    host=db_host,
+    user=db_user,
+    password=db_password,
+    database=db_name,
+    port=db_port
+)
 
 @app.context_processor
 def global_variables():
@@ -131,7 +148,17 @@ def project_page(project_id):
             return apology(validate_input(project))
 
         # Update table projects and return project page refreshed
-        db.execute("UPDATE projects SET name = ?, category = ?, goal = ?, expire_date = ?, description = ? WHERE id = ?", project["name"], project["category"], project["goal"], project["expire_date"], project["description"], project_id)
+        db = conn.cursor()
+        try:
+            query = ("UPDATE projects SET name = %s, category = %s, goal = %s, expire_date = %s, description = %s WHERE id = %s")
+            params = (project["name"], project["category"], project["goal"], project["expire_date"], project["description"], project_id)
+            db.execute(query, params)
+            conn.commit()
+        except:
+            conn.rollback()
+        finally:
+            db.close()
+        #db.execute("UPDATE projects SET name = ?, category = ?, goal = ?, expire_date = ?, description = ? WHERE id = ?", project["name"], project["category"], project["goal"], project["expire_date"], project["description"], project_id)
         return redirect(url_for("project_page", project_id=project_id))
 
     # Get project info from database
@@ -149,7 +176,11 @@ def donate():
     project_id = data.get("project_id")
 
     # Check if project is valid for user to donate
-    project_data = db.execute("SELECT status, public_key FROM projects WHERE id = ?", project_id)[0]
+    db = conn.cursor()
+    query = "SELECT status, public_key FROM projects WHERE id = %s"
+    params = (project_id,)
+    db.execute(query, params)
+    project_data = db.fetchone()
     if project_data["status"] != "active":
         return apology("You can't donate to an expired project.")
 
@@ -157,7 +188,6 @@ def donate():
         return apology("You can't fund your own project.")
 
     amount = data.get("amount")
-    print(amount)
     if not check_amount(amount):
         err = 400
         return jsonify(err=err)
@@ -238,16 +268,27 @@ def new_project():
             return apology(validate_input(project))
 
         try:
-            filename = upload_image(project["image"])
+            file_url = upload_image(project["image"])
         except:
             return apology("Something went wrong with your image upload.", 500)
 
         # Update table projects
-        db.execute("INSERT INTO projects (public_key, name, category, goal, expire_date, status, image_path, description) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", session["public_key"], project["name"], project["category"], project["goal"], project["expire_date"], "active", filename, project["description"])
-        rows = db.execute("SELECT id FROM projects ORDER BY created_at DESC LIMIT 1")
+        db = conn.cursor()
+
+        query = ("INSERT INTO projects (public_key, name, category, goal, expire_date, status, image_path, description) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)")
+        params = (session["public_key"], project["name"], project["category"], project["goal"], project["expire_date"], "active", file_url, project["description"])
+
+        db = conn.cursor()
+        db.execute(query, params)
+        conn.commit()
+
+        db.execute("SELECT id FROM projects ORDER BY created_at DESC LIMIT 1")
+        rows = db.fetchone()
+
+        db.close()
 
         # Get project ID
-        project_id = rows[0]["id"]
+        project_id = rows["id"]
 
         return redirect(url_for("project_page", project_id=project_id))
 
@@ -371,7 +412,10 @@ def build_payment_transaction(operations_list, operation_type):
     )
 
     # Get temporary transactions table (stored in the temp database)
-    temp_transactions_list = db.execute("SELECT * FROM temp_operations")
+    db = conn.cursor(dictionary=True)
+    db.execute("SELECT * FROM temp_operations")
+    temp_transactions_list = db.fetchall()
+    #temp_transactions_list = db.execute("SELECT * FROM temp_operations")
 
     # Reset table if it's not empty
     if temp_transactions_list:
@@ -382,7 +426,10 @@ def build_payment_transaction(operations_list, operation_type):
         transaction.append_payment_op(destination=operation["destination_account"], asset=Asset.native(), amount=str(operation["amount"]))
 
         # Save operations temporarily to update database after submitting transaction
-        db.execute("INSERT INTO temp_operations (project_id, amount, destination_account, type) VALUES(?, ?, ?, ?)", operation["project_id"], operation["amount"], operation["destination_account"], operation_type)
+        db.execute("INSERT INTO temp_operations (project_id, amount, destination_account, type) VALUES(%s, %s, %s, %s)", (operation["project_id"], operation["amount"], operation["destination_account"], operation_type))
+
+    conn.commit()
+    db.close()
 
     # Set max timelimit (in seconds) to process transaction
     transaction.set_timeout(30)
@@ -410,9 +457,9 @@ def send_transaction():
         if submit_response["successful"] == True:
 
             hash = submit_response["hash"]
-            temp_table = db.execute("SELECT * FROM temp_operations")
+            #temp_table = db.execute("SELECT * FROM temp_operations")
 
-            update_transactions_database(temp_table, hash)
+            update_transactions_database(hash)
 
         return jsonify(submit_response)
 
