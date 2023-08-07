@@ -63,7 +63,7 @@ def after_request(response):
 def index():
     """ Homepage """
 
-    update_database_status()
+    #update_database_status()
 
     start_time_total = time.time()
 
