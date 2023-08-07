@@ -13,7 +13,7 @@
 
       <div class="col-lg-5"> 
         <div class="card mb-3 w-75">
-          <img class="card-img" id="projectImage" src="{{ url_for('static', filename='uploads/' + project['image_path']) }}" alt="project image">
+          <img class="card-img" id="projectImage" src="{{ project['image_path'] }}" alt="project image">
             <div class="card-text">
             <div class="card-body">
               <div class="card-text">
@@ -62,10 +62,9 @@
           {% if project["public_key"] != session["public_key"] %}
             <!-- Customized message and donation collapse -->
             <div class="row">
-
               <div class="col">
                 <p class="text-center fs-5">
-                  This project already reached its goal, but you can donate until {{ project["expire_date"] }}
+                  This is {{ project["funding_progress"] }} funded and you can donate until {{ project["expire_date"] }}.
                 </p>
               </div>
 
@@ -92,6 +91,7 @@
 
             </div>
 
+          <!-- If it's an active project and -->
           {% else %}
             <div class="row">
 
@@ -112,19 +112,15 @@
           <div class="row">
 
             <div class="col">
-              {% if project["status"] == "funded" %}
-                <p class="text-start fs-5">
-                  Congrats! Your project expired at {{ project["expire_date"] }} and reached <b>{{ project["donations"] }} donations</b>.
-                </p>
-              {% elif project["status"] == "fund" %}
-                <p class="text-start fs-5">
-                  Congrats! Your project expired at {{ project["expire_date"] }} and reached <b>{{ project["donations"] }} donations</b>. Soon your funds will be tranfered to your Stellar account.
-                </p>
-              {% else %}
-                <p class="text-start fs-5">
-                  Unfortunally your project <b>expired at {{ project["expire_date"] }} </b> and didn't reached the goal.
-                </p>
-              {% endif %}
+              <p class="text-start fs-5">
+                {% if project["status"] == "funded" %}
+                    Congrats! Your project expired at {{ project["expire_date"] }} and reached <b>{{ project["donations"] }} donations</b>.
+                {% elif project["status"] == "fund" %}
+                    Congrats! Your project expired at {{ project["expire_date"] }} and reached <b>{{ project["donations"] }} donations</b>. Soon your funds will be tranfered to your Stellar account.
+                {% else %}
+                    Unfortunally your project <b>expired at {{ project["expire_date"] }} </b> and didn't reached the goal.
+                {% endif %}
+              </p>
             </div>
 
           </div>

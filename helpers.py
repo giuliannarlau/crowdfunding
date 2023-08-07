@@ -63,7 +63,7 @@ def format_date(date, date_type):
 
     # Medium dates are shown on client side
     elif date_type == "medium_string":
-        new_date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S").strftime("%d/%m/%Y")
+        new_date = date.strftime("%d/%m/%Y")
     elif date_type == "long_datetime":
         new_date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
 
@@ -110,6 +110,23 @@ def get_const_list(const_list):
 
     return const_list
 
+def generate_project_id():
+
+    db = conn.cursor()
+    project_id = 1
+
+    try:
+        db.execute("SELECT id FROM projects")
+        results = db.fetchall()
+        ids_list = [row[0] for row in results]
+        while project_id in ids_list:
+            project_id += 1
+    except Exception as e:
+        print(f"Error trying to generate new id: {e}")
+    finally:
+        db.close()
+    
+    return project_id
 
 """ VALIDATION """
 
@@ -214,13 +231,12 @@ def search_projects(name="", category="", status="", id=""):
     for project in projects_list:
 
         # Format proper date type
-        expire_date = format_date(project["expire_date"], "long_datetime")
-        project["expire_date"] = format_date(project["expire_date"], "medium_string")
+        #expire_date = format_date(project["expire_date"], "long_datetime")
 
         # Calculate remaining active project days
         if project["status"] == "active":
 
-            days_remaining = expire_date - datetime.today()
+            days_remaining = project["expire_date"] - datetime.today()
             days_left = days_remaining.days
             if days_left == 0:
                 project["days_left"] = "last day"
@@ -230,6 +246,8 @@ def search_projects(name="", category="", status="", id=""):
                 project["days_left"] = "{} days left".format(days_left)
         else:
             project["days_left"] = 0
+
+        project["expire_date"] = format_date(project["expire_date"], "medium_string")
 
     return calculate_project_progress(projects_list)
 
@@ -297,7 +315,9 @@ def update_database_status():
         projects_list = calculate_project_progress(projects_list)
 
         for project in projects_list:
-            project["expire_date"] = format_date(project["expire_date"], "long_datetime")
+            print(project["expire_date"])
+            print(type(project["expire_date"]))
+            #project["expire_date"] = format_date(project["expire_date"], "long_datetime")
 
             # Update status of expired projects
             if project["expire_date"] < datetime.today():
@@ -319,7 +339,7 @@ def update_database_status():
 
     except Exception as e:
         conn.rollback()
-        print(f"An error occurred: {e}")
+        print(f"An error occurred trying to update database: {e}")
     finally:
         db.close() 
 
@@ -363,7 +383,8 @@ def update_transactions_database(hash):
 
 def apology(message, code=400):
     """Render message as an apology to user."""
-    return render_template("apology.html", top=code, bottom=message)
+    referrer = request.headers.get("Referer")
+    return render_template("apology.html", top=code, bottom=message, referrer=referrer)
 
 
 def freighter_required(f):

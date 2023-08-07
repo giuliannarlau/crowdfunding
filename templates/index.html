@@ -67,18 +67,18 @@
 
       {% for project in projects_list %}
         <div class="col-md-4 col-md mb-3">
-          <div class="card">
-            <img class="card-img" src="{{ url_for('static', filename='uploads/' + project['image_path']) }}" alt="project image">
+          <div class="card project-card">
+            <img class="card-img" src="{{ project['image_path'] }}" alt="project image">
             <div class="card-body d-flex">
               <p class="card-text w-50 my-auto">{{ project["project_id"] }} {{ project["name"] }} | {{ project["category"] }}</p>
               <button class="btn btn-outline-dark" onclick="location.href='{{ url_for('project_page', project_id=project['project_id']) }}'">See project</button>
             </div>
-            <div class="card-footer">
+            <div class="card-footer pb-2">
               {% if project["public_key"] == session["public_key"] %}
-                <button disabled class="btn btn-primary btn-sm mb-2">Your project</button>
+                <button disabled class="btn btn-primary btn-sm">Your project</button>
               {% endif %}
-              <button disabled class="btn btn-dark btn-sm mb-2"> {{ project["days_left"] }}</button>
-              <button disabled class="btn btn-success btn-sm mb-2">{{ project["funding_progress"] }} funded</button>
+              <button disabled class="btn btn-dark btn-sm"> {{ project["days_left"] }}</button>
+              <button disabled class="btn btn-success btn-sm">{{ project["funding_progress"] }} funded</button>
             </div>
           </div>
         </div> 

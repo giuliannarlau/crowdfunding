@@ -15,7 +15,7 @@ from flask_session import Session
 from stellar_sdk import Asset, Network, Server, TransactionBuilder
 from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
 
-from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_database_status, update_transactions_database, upload_image, validate_input
+from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, generate_project_id, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_database_status, update_transactions_database, upload_image, validate_input
 
 # Configure application
 app = Flask(__name__)
@@ -163,6 +163,7 @@ def project_page(project_id):
 
     # Get project info from database
     project = search_projects(id=project_id)[0]
+    print(f'\nproject in project page GET {project}\n')
 
     return render_template('project.html', project=project)
 
@@ -256,6 +257,7 @@ def new_project():
         expire_date = format_date(request.form.get("projectExpireDate"), "long_datetime_db")
 
         project = {
+            "id": generate_project_id(),
             "category": request.form.get("projectCategory"),
             "goal": request.form.get("projectGoal"),
             "name": request.form.get("projectName"),
@@ -263,6 +265,8 @@ def new_project():
             "description": request.form.get("projectDescription"),
             "image": request.form.get("base64Image")
         }
+
+        print(f'Printing project id generates {project["id"]}')
 
         if validate_input(project) != True:
             return apology(validate_input(project))
@@ -275,22 +279,26 @@ def new_project():
         # Update table projects
         db = conn.cursor()
 
-        query = ("INSERT INTO projects (public_key, name, category, goal, expire_date, status, image_path, description) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)")
-        params = (session["public_key"], project["name"], project["category"], project["goal"], project["expire_date"], "active", file_url, project["description"])
+        try:
+            query = ("INSERT INTO projects (id, public_key, name, category, goal, expire_date, status, image_path, description) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)")
+            params = (project["id"], session["public_key"], project["name"], project["category"], project["goal"], project["expire_date"], "active", file_url, project["description"])
 
-        db = conn.cursor()
-        db.execute(query, params)
-        conn.commit()
+            db = conn.cursor()
+            db.execute(query, params)
+            conn.commit()
 
-        db.execute("SELECT id FROM projects ORDER BY created_at DESC LIMIT 1")
-        rows = db.fetchone()
+            db.execute("SELECT id FROM projects ORDER BY created_at DESC LIMIT 1")
+            rows = db.fetchone()
+            project_id = rows[0]
 
-        db.close()
+        except Exception as e:
+            conn.rollback()
+            return apology(f"An error occurred inserting your project on database: {str(e)}", 500)
+        finally:
+            db.close()
 
         # Get project ID
-        project_id = rows["id"]
-
-        return redirect(url_for("project_page", project_id=project_id))
+        return redirect("/")
 
     filename = "theo.jpg"
 

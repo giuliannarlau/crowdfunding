@@ -21,14 +21,12 @@ body {
     min-height: 100vh;
 }
 
-.wrapper {
-    flex: 1;
-}
-
 footer {
     bottom: 0px;
     margin-bottom: 0px;
 }
+
+/* Divisors */
 
 hr {
     color: #FEA928;
@@ -61,11 +59,8 @@ nav {
     transform: scale(1.1);
 }
 
-.text-dark {
-    color: #000041;
-}
 
-
+/* Titles */
 h1 {
     font-size: 50px;
     text-align: start;
@@ -80,6 +75,13 @@ h3 {
     padding-top: 15px;;
 }
 
+.text-dark {
+    color: #000041;
+}
+
+.wrapper {
+    flex: 1;
+}
 
 /* Inputs and selects */
 input, select {
@@ -95,6 +97,10 @@ input, select {
     margin: auto;
     max-width: 340px;
     text-align: center;
+}
+
+.project-card {
+    margin-bottom: 10px;
 }
 
 
