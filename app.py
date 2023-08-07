@@ -69,7 +69,6 @@ def index():
 
     # Handle connect wallet
     if request.method == "POST":
-        print("Inside index post")
 
         # Forget any user_id
         session.clear()
@@ -163,7 +162,6 @@ def project_page(project_id):
 
     # Get project info from database
     project = search_projects(id=project_id)[0]
-    print(f'\nproject in project page GET {project}\n')
 
     return render_template('project.html', project=project)
 
@@ -265,8 +263,6 @@ def new_project():
             "description": request.form.get("projectDescription"),
             "image": request.form.get("base64Image")
         }
-
-        print(f'Printing project id generates {project["id"]}')
 
         if validate_input(project) != True:
             return apology(validate_input(project))

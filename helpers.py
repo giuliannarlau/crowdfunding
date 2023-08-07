@@ -315,8 +315,6 @@ def update_database_status():
         projects_list = calculate_project_progress(projects_list)
 
         for project in projects_list:
-            print(project["expire_date"])
-            print(type(project["expire_date"]))
             #project["expire_date"] = format_date(project["expire_date"], "long_datetime")
 
             # Update status of expired projects
