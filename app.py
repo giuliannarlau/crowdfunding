@@ -177,12 +177,14 @@ def donate():
     data = request.get_json()
     project_id = data.get("project_id")
 
-    # Check if project is valid for user to donate
-    db = conn.cursor()
+    # Get project info from db
+    db = conn.cursor(dictionary=True)
     query = "SELECT status, public_key FROM projects WHERE id = %s"
     params = (project_id,)
     db.execute(query, params)
     project_data = db.fetchone()
+
+    # Check if project is valid for user to donate
     if project_data["status"] != "active":
         return apology("You can't donate to an expired project.")
 
