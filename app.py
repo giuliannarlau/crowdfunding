@@ -6,6 +6,7 @@ import ast
 
 import requests
 import certifi
+import time
 
 from cs50 import SQL
 from dotenv import load_dotenv
@@ -64,6 +65,8 @@ def index():
 
     update_database_status()
 
+    start_time_total = time.time()
+
     # Handle connect wallet
     if request.method == "POST":
 
@@ -82,6 +85,8 @@ def index():
 
     # Get active projects from database
     projects_list = search_projects(status="active")
+    end_time_total = time.time()
+    print(f"Tempo total: {end_time_total - start_time_total} segundos")
 
     return render_template("index.html", projects_list=projects_list)
 
