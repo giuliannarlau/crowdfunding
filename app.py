@@ -20,6 +20,7 @@ from helpers import apology, check_amount, check_projects_action, format_date, f
 
 # Configure application
 app = Flask(__name__)
+app.secret_key = "changeIt2145"
 
 load_dotenv()
 
