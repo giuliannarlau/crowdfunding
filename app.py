@@ -20,10 +20,7 @@ from helpers import apology, check_amount, check_projects_action, format_date, f
 # Configure application
 app = Flask(__name__)
 
-# Configure session to use filesystem (instead of signed cookies)
-
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
+load_dotenv()
 
 # Configure CS50 Library to use SQLite database
 #db = SQL("sqlite:///crowdfunding.db")

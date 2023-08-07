@@ -11,7 +11,7 @@ import time
 import math
 import werkzeug.exceptions as ex
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
@@ -21,17 +21,8 @@ from functools import wraps
 from stellar_sdk import Asset, Keypair, Network, Server, TransactionBuilder
 from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
 
-load_dotenv()
-
-UPLOAD_FOLDER = "./static/uploads"
-ALLOWED_EXTENSIONS = set(["jpg", "png", "jpeg"])
-
 # Configure application
 app = Flask(__name__)
-
-# Configure CS50 Library to use SQLite database
-from cs50 import SQL
-db = SQL("sqlite:///crowdfunding.db")
 
 admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
 categories_list = ["Books", "Games", "Music", "Technology", "All"]
