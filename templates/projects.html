@@ -29,7 +29,7 @@
 
           <div class="col-md-3 col-md">
             <label for="filter" class="form-text">Sort By</label>
-            <select class="form-select" id="orderBy" name="orderBy">
+            <select disabled class="form-select" id="orderBy" name="orderBy">
               {% for status in status_list %}
                 <option>{{ status | capitalize }}</option>
               {% endfor %}
