@@ -1,7 +1,6 @@
 import os
 import mysql.connector
 
-import stellar_sdk
 import ast
 
 import requests
@@ -44,6 +43,7 @@ conn = mysql.connector.connect(
     port=db_port
 )
 
+
 @app.context_processor
 def global_variables():
     admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
@@ -63,8 +63,6 @@ def after_request(response):
 @app.route("/", methods=["GET", "POST"])
 def index():
     """ Homepage """
-
-    #update_database_status()
 
     start_time_total = time.time()
 
@@ -341,6 +339,20 @@ def control_panel():
         return jsonify(admin_action_projects=admin_action_projects)
 
     return render_template("controlpanel.html", admin_projects_list=admin_projects_list)
+
+
+
+@app.route("/statusupdate", methods=["POST"])
+@freighter_required
+def status_update():
+
+    try:
+        update_database_status()
+        return make_response("OK", 200)
+    except Exception as e:
+        print(f"Error updating projects status: {e}")
+        return apology("Internal server error", 500)
+
 
 
 @app.route("/filter_projects", methods=["POST"])

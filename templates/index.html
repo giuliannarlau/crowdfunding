@@ -14,17 +14,17 @@
           <h1>
             Where crypto funds a better future
           </h1>
-          <p class="text-start fs-4 mb-5">
+          <p class="text-start text-medium mb-5">
             Big company announcement or simple sub-header taking two or more lines. Text for the third line.
           </p>
-          <div class="d-flex flex-column flex-md-row justify-content-between">
+          <div class="d-flex flex-wrap justify-content-center">
             <a class="btn btn-light btn-xl" href="/projects">BACK A PROJECT</a>
-            <div class="vr"></div>
+            <div class="vr mx-4"></div>
             <a class="btn btn-outline-light btn-xl" name="{{ session['public_key'] }}" onclick="checkUser(this)">START A PROJECT</a>
           </div>
         </div>
 
-        <div class="col-lg-6 col-lg text-center">
+        <div class="col-lg-6 col-lg">
           <img src="{{ url_for('static', filename='theodora.jpg') }}" class="img-fluid">
         </div>
 

@@ -24,6 +24,7 @@ body {
 footer {
     bottom: 0px;
     margin-bottom: 0px;
+    margin-top: 15px;
 }
 
 /* Divisors */
@@ -62,9 +63,13 @@ nav {
 
 /* Titles */
 h1 {
-    font-size: 50px;
+    font-size:calc(15px + 1.7vw);
     text-align: start;
-    margin-bottom: 30px;;
+    margin-bottom: 30px;
+}
+
+h2 {
+    font-size:calc(12px + 1.5vw);
 }
 
 
@@ -75,8 +80,20 @@ h3 {
     padding-top: 15px;;
 }
 
+
+
+.title-bold {
+    font-size: 22px;
+    font-weight: bold;
+    margin: 15px auto;
+}
+
 .text-dark {
     color: #000041;
+}
+
+.text-medium {
+    font-size:calc(12px + 1vw);
 }
 
 .wrapper {
@@ -167,6 +184,10 @@ input, select {
     height: 80%;
 }
 
+.img-medium {
+    max-width: 80%;
+}
+
 #imgCol {
     align-items: center;
     display: flex;
@@ -192,8 +213,10 @@ input, select {
     background: white;
     border: 3px solid #FEA928;
     color: #000041;
+    font-size:calc(8px + 0.5vw) !important;
     font-weight: 20px;
-
+    max-height: 70px;
+    min-width: 100px;
 }
 
 
@@ -223,6 +246,10 @@ input, select {
     border: 1px solid #FEA928;
     box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.10), 0 2px 6px 0 rgba(0, 0, 0, 0.7);
     color: white;
+    font-size:calc(8px + 0.5vw) !important;
+    font-weight: 20px;
+    max-height: 70px;
+    min-width: 100px;
 }
 
 
@@ -231,7 +258,6 @@ input, select {
     color: #000041;
     transform: scale(1.1);
 }
-
 
 .btn-xl {
     font-size: 100%;
@@ -267,8 +293,20 @@ input, select {
     color: #DCDEE0;
 }
 
+.list-outline-orange {
+    border: 1px solid #FEA928;
+    border-radius: 15px;
+}
+
 .list-group-item {
-    text-align: start;
+    border-radius: 15px;
+    margin-top: 15px;
+    max-width: 90%;
+    padding: 22px;
+}
+
+.item-description {
+    font-size: 20px;
 }
 
 /* Search tab for page projects and myaccount */
@@ -344,7 +382,14 @@ input, select {
     text-align: center;
 }
 
-
+#aboutContainer {
+    margin-bottom: 40px;
+    min-height: 100%;
+    min-width: 100%;
+    padding: 8%;
+    padding-top: 3%;
+    text-align: justify;
+}
 
 /* PROJECT PAGE */
 
@@ -362,8 +407,7 @@ input, select {
 
 #projectDescription {
     height: 200px;
-    width: 700px;
-    max-width: 700px;
+    min-height: 100px;
 }
 
 /* On new project page */

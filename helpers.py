@@ -1,25 +1,23 @@
 import os
 import base64
 import boto3
-import requests
-import urllib.parse
-import sys
-import secrets
-import mysql.connector
-
-import time
 import math
-import werkzeug.exceptions as ex
+import mysql.connector
+import schedule
+import secrets
+import time
 
 from datetime import datetime
-from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
-#from io import BytesIO
-#from PIL import Image
 
-from stellar_sdk import Asset, Keypair, Network, Server, TransactionBuilder
-from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
+#from stellar_sdk import Asset, Keypair, Network, Server, TransactionBuilder
+#from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
+
+#import werkzeug.exceptions as ex
+#import requests
+#import urllib.parse
+#import sys
 
 # Configure application
 app = Flask(__name__)
@@ -64,32 +62,39 @@ def format_date(date, date_type):
 def calculate_project_progress(projects_list):
     """ Calculate percentage of funding progress """
     
-    db = conn.cursor(dictionary=True)
     try:
+        projects_list = get_total_donations(projects_list)
         for project in projects_list:
-
-            # Get total amount of donations
-            query = "SELECT SUM(amount) as donations FROM transactions WHERE project_id = %s AND type = %s"
-            params = (project["project_id"], "donation")
-            db.execute(query, params)
-
-            amount_donations = db.fetchone()
-            if not amount_donations["donations"]:
-                amount_donations["donations"] = 0
-            project["total_donations"] = amount_donations["donations"]
-
-            # Calculate percentage
             project["funding_progress"] = f'{math.floor(project["total_donations"] / project["goal"] * 100)}%'
         
         return projects_list
 
     except Exception as e:
-        print("An error occurred calculatinf project progress:", str(e))
+        print("An error occurred calculating project progress:", str(e))
         return None
 
+def get_total_donations(projects_list):
+
+    db = conn.cursor(dictionary=True)
+
+    try:
+        for project in projects_list:
+            # Get total amount of donations
+            query = "SELECT SUM(amount) as donations FROM transactions WHERE project_id = %s AND type = %s"
+            params = (project["project_id"], "donation")
+            db.execute(query, params)
+
+            total_donations = db.fetchone()["donations"] or 0
+            project["total_donations"] = total_donations
+
+    except Exception as e:
+        print("An error occurred searching total donations:", str(e))
+    
     finally:
-        # Fechando o cursor
         db.close()
+    
+    return projects_list
+    
 
 
 def get_const_list(const_list):
@@ -118,6 +123,13 @@ def generate_project_id():
         db.close()
     
     return project_id
+
+def run_schedule():
+    schedule.every().day.at("02:00").do(update_database_status)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
 
 """ VALIDATION """
 
@@ -301,12 +313,11 @@ def update_database_status():
         db = conn.cursor(dictionary=True)
 
         # Get all projects
-        db.execute("SELECT id AS project_id, expire_date, goal FROM projects")
+        db.execute("SELECT id AS project_id, expire_date, goal FROM projects WHERE status = 'active'")
         projects_list = db.fetchall()
-        projects_list = calculate_project_progress(projects_list)
+        projects_list = get_total_donations(projects_list)
 
         for project in projects_list:
-            #project["expire_date"] = format_date(project["expire_date"], "long_datetime")
 
             # Update status of expired projects
             if project["expire_date"] < datetime.today():
@@ -322,9 +333,6 @@ def update_database_status():
                 # Projects that didn't achieve their funding goal will have their donations returned to backers
                 else:
                     db.execute("UPDATE projects SET status = %s WHERE id = %s", ("refund", project["project_id"]))
-        
-        # Fechando o cursor
-        db.close()
 
     except Exception as e:
         conn.rollback()
@@ -370,22 +378,6 @@ def update_transactions_database(hash):
     finally:
         db.close()
 
-def apology(message, code=400):
-    """Render message as an apology to user."""
-    referrer = request.headers.get("Referer")
-    return render_template("apology.html", top=code, bottom=message, referrer=referrer)
-
-
-def freighter_required(f):
-    """ Decorate routes to require user's connection with freighter."""
-
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if session.get("public_key") is None:
-            return redirect("/")
-        return f(*args, **kwargs)
-    return decorated_function
-
 
 def upload_image(base64_img):
 
@@ -401,9 +393,6 @@ def upload_image(base64_img):
         bucket_name = 'cf-img-uploads'
         s3_client = boto3.client('s3')
         s3_client.put_object(Bucket='cf-img-uploads', Key=filename, Body=image_bytes, ContentType='image/png')
-        #image = Image.open(BytesIO(image_bytes))
-        #image_path = os.path.join(UPLOAD_FOLDER, filename)
-        #image.save(image_path, "PNG")
         file_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
 
         return file_url
@@ -411,3 +400,19 @@ def upload_image(base64_img):
     except Exception as e:
         print(e)
         return e
+
+def apology(message, code=400):
+    """Render message as an apology to user."""
+    referrer = request.headers.get("Referer")
+    return render_template("apology.html", top=code, bottom=message, referrer=referrer)
+
+
+def freighter_required(f):
+    """ Decorate routes to require user's connection with freighter."""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("public_key") is None:
+            return redirect("/")
+        return f(*args, **kwargs)
+    return decorated_function
