@@ -11,14 +11,6 @@ from datetime import datetime
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
 
-#from stellar_sdk import Asset, Keypair, Network, Server, TransactionBuilder
-#from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
-
-#import werkzeug.exceptions as ex
-#import requests
-#import urllib.parse
-#import sys
-
 # Configure application
 app = Flask(__name__)
 
