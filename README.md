@@ -27,5 +27,5 @@ This project welcomes contributions. Please feel free to submit pull requests or
 
 ## License
 
-Licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+Licensed under the MIT License. See the [MIT License](LICENSE.txt) file for more details.
 
