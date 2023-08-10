@@ -2,7 +2,7 @@
 
 ## Overview
 
-Lux is an ongoing project designed to facilitate crowdfunding via the Stellar blockchain. It exclusively operates on Stellar's TESTNET network, offering a seamless experience for project creators and backers alike. This project is currently in development.
+Lux is an ongoing project designed to facilitate crowdfunding via the Stellar blockchain. It exclusively operates on Stellar's TESTNET network, offering a seamless experience for project creators and backers alike.
 
 ## Technologies
 
