@@ -11,7 +11,7 @@ from datetime import datetime
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
 
-# Configure application
+# Configure flask
 app = Flask(__name__)
 
 admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
@@ -65,12 +65,14 @@ def calculate_project_progress(projects_list):
         print("An error occurred calculating project progress:", str(e))
         return None
 
+
 def get_total_donations(projects_list):
 
     db = conn.cursor(dictionary=True)
 
     try:
         for project in projects_list:
+
             # Get total amount of donations
             query = "SELECT SUM(amount) as donations FROM transactions WHERE project_id = %s AND type = %s"
             params = (project["project_id"], "donation")
@@ -91,12 +93,15 @@ def get_total_donations(projects_list):
 
 def get_const_list(const_list):
     """ Get constant list os default values """
+
     if const_list == "category":
         const_list = categories_list
+    
     elif const_list == "status":
         const_list = status_list
 
     return const_list
+
 
 def generate_project_id():
 
@@ -109,30 +114,40 @@ def generate_project_id():
         ids_list = [row[0] for row in results]
         while project_id in ids_list:
             project_id += 1
+    
     except Exception as e:
         print(f"Error trying to generate new id: {e}")
+    
     finally:
         db.close()
     
     return project_id
 
+
 def run_schedule():
+    # TO DO: Finish
+
     schedule.every().day.at("02:00").do(update_database_status)
 
     while True:
         schedule.run_pending()
         time.sleep(60)
 
+
 """ VALIDATION """
 
 def check_amount(value):
     """ Check for valid amount input"""
+
     try:
         int_value = int(value)
+    
     except:
         return False
+    
     if not isinstance(int_value, int) or (int_value <= 0):
         return False
+    
     return True
 
 
@@ -148,11 +163,12 @@ def check_projects_action(projects_list, project_ids, operation_type):
 
 
 def validate_input(project):
-    for key, value in project.items():
+    # TO DO: Change it, too many if's 
 
+    for key, value in project.items():
         if not value:
             return f"Field {key} is empty."
-
+        
         if key in ["category", "status"]:
             accepted_values = get_const_list(key)
             if value not in accepted_values:
@@ -182,7 +198,6 @@ def search_donations_history(name="", category="", status=""):
     params = (session["public_key"], "donation", "%" + name + "%", "%" + category + "%", "%" + status + "%")
     db.execute(query, params)
 
-    # Buscando todos os resultados e fechando o cursor
     projects_list = db.fetchall()
     db.close()
 
@@ -192,17 +207,23 @@ def search_donations_history(name="", category="", status=""):
     return projects_list
 
 
+def clean_filter_value(value):
+    if value.lower() == "all":
+        return ""
+    return value
+
 def search_projects(name="", category="", status="", id=""):
     """ Search projects data and total donations.
      Parameters are optional, returning all projects if none is passed """
 
+    # TO DO: Change this, too long
+
     projects_list = []
     db = conn.cursor(dictionary=True)
 
-    if category in ["All", "all"]:
-        category = ""
-    if status in ["All", "all"]:
-        status = ""
+    # Clean filter values
+    category = clean_filter_value(category)
+    status = clean_filter_value(status)
 
     if not id:
         query = (
@@ -210,6 +231,7 @@ def search_projects(name="", category="", status="", id=""):
             "WHERE name LIKE %s AND category LIKE %s AND status LIKE %s ORDER BY status"
         )
         params = ("%" + name + "%", "%" + category + "%", "%" + status + "%")
+    
     else:
         query = (
             "SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects "
@@ -219,14 +241,10 @@ def search_projects(name="", category="", status="", id=""):
 
     db.execute(query, params)
     
-    # Buscando todos os resultados e fechando o cursor
     projects_list = db.fetchall()
     db.close()
 
     for project in projects_list:
-
-        # Format proper date type
-        #expire_date = format_date(project["expire_date"], "long_datetime")
 
         # Calculate remaining active project days
         if project["status"] == "active":
@@ -254,27 +272,27 @@ def search_refund_operations(projects_list):
     
     
     for project in projects_list:
+
         query = (
             "SELECT project_id, public_key_sender AS public_key, SUM(amount) AS total_donations "
             "FROM transactions WHERE project_id = %s AND type = %s GROUP BY public_key_sender"
         )
         params = (project["project_id"], "donation")
         db.execute(query, params)
-
         doners_operations = db.fetchall()
         
         for operation in doners_operations:
             operation["name"] = project["name"]
+
         refundable_projects.extend(doners_operations)
 
-    # Fechando o cursor
     db.close()
 
     return refundable_projects
 
 
 def search_supported_projects():
-    # Search for projects supported by user
+    """ Search for projects supported by user """
 
     db = conn.cursor(dictionary=True)
 
@@ -284,12 +302,9 @@ def search_supported_projects():
         "WHERE t.public_key_sender = %s AND t.type = %s GROUP BY t.project_id ORDER BY status"
     )
     params = (session["public_key"], "donation")
-
     db.execute(query, params)
-
     projects_list = db.fetchall()
-
-    # Fechando o cursor
+    
     db.close()
 
     return calculate_project_progress(projects_list)
@@ -303,8 +318,6 @@ def update_database_status():
 
     try:
         db = conn.cursor(dictionary=True)
-
-        # Get all projects
         db.execute("SELECT id AS project_id, expire_date, goal FROM projects WHERE status = 'active'")
         projects_list = db.fetchall()
         projects_list = get_total_donations(projects_list)
@@ -328,7 +341,8 @@ def update_database_status():
 
     except Exception as e:
         conn.rollback()
-        print(f"An error occurred trying to update database: {e}")
+        print(f"An error occurred trying to update status: {e}")
+    
     finally:
         db.close() 
 
@@ -345,34 +359,38 @@ def update_transactions_database(hash):
             if operation["type"] == "donation":
                 public_key_sender = session["public_key"]
                 public_key_receiver = admin_account
+            
             else:
                 public_key_sender = admin_account
                 public_key_receiver = operation["destination_account"]
+                
                 if operation["type"] == "fund":
                     operation["new_status"] = "successful"
+                
                 else:
                     operation["new_status"] = "unsuccessful"
                 
-                #db.execute("UPDATE projects SET status = ? WHERE id = ?", operation["new_status"], operation["project_id"])
                 query = "UPDATE projects SET status = %s WHERE id = %s"
                 params = (operation["new_status"], operation["project_id"])
                 db.execute(query, params)
 
-            #db.execute("INSERT INTO transactions (project_id, amount, public_key_sender, public_key_receiver, hash, type) VALUES(?, ?, ?, ?, ?, ?)", operation["project_id"], operation["amount"], public_key_sender, public_key_receiver, hash, operation["type"])
             query = "INSERT INTO transactions (project_id, amount, public_key_sender, public_key_receiver, hash, type) VALUES(%s, %s, %s, %s, %s, %s)"
             params = (operation["project_id"], operation["amount"], public_key_sender, public_key_receiver, hash, operation["type"])
             db.execute(query, params)
 
         conn.commit()
+    
     except Exception as e:
         conn.rollback()
-        print("An error occurred:", str(e))
+        print(f"An error occurred trying to update transactions: {e}")
+    
     finally:
         db.close()
 
 
 def upload_image(base64_img):
-
+    """ Uploads the image on database """
+    
     # Decode to bytes avoiding padding error
     try:
         image_str = base64_img.split(",")[1]
@@ -393,8 +411,10 @@ def upload_image(base64_img):
         print(e)
         return e
 
+
 def apology(message, code=400):
     """Render message as an apology to user."""
+
     referrer = request.headers.get("Referer")
     return render_template("apology.html", top=code, bottom=message, referrer=referrer)
 

@@ -1,11 +1,10 @@
-import os
 import mysql.connector
-
-import ast
-
-import requests
-import certifi
+import os
 import time
+
+#import ast
+#import requests
+#import certifi
 
 from cs50 import SQL
 from dotenv import load_dotenv
@@ -17,20 +16,21 @@ from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestEr
 
 from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, generate_project_id, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_database_status, update_transactions_database, upload_image, validate_input
 
-# Configure application
+# Configure flask
 app = Flask(__name__)
 app.secret_key = "changeIt2145"
 
 load_dotenv()
 
 admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
+server = Server("https://horizon-testnet.stellar.org")
+
 
 db_host = os.environ['DB_HOST']
 db_port = os.environ['DB_PORT']
 db_user = os.environ['DB_USER']
 db_password = os.environ['DB_PASSWORD']
 db_name = os.environ['DB_NAME']
-
 
 conn = mysql.connector.connect(
     host=db_host,
@@ -61,6 +61,7 @@ def after_request(response):
 def index():
     """ Homepage """
 
+    # Timing
     start_time_total = time.time()
 
     # Handle connect wallet
@@ -80,8 +81,9 @@ def index():
 
     # Get active projects from database
     projects_list = search_projects(status="active")
+
     end_time_total = time.time()
-    print(f"Tempo total: {end_time_total - start_time_total} segundos")
+    print(f"Time tracking: {end_time_total - start_time_total} sec")
 
     return render_template("index.html", projects_list=projects_list)
 
@@ -150,11 +152,13 @@ def project_page(project_id):
             params = (project["name"], project["category"], project["goal"], project["expire_date"], project["description"], project_id)
             db.execute(query, params)
             conn.commit()
+        
         except:
             conn.rollback()
+        
         finally:
             db.close()
-        #db.execute("UPDATE projects SET name = ?, category = ?, goal = ?, expire_date = ?, description = ? WHERE id = ?", project["name"], project["category"], project["goal"], project["expire_date"], project["description"], project_id)
+        
         return redirect(url_for("project_page", project_id=project_id))
 
     # Get project info from database
@@ -282,6 +286,7 @@ def new_project():
             db.execute(query, params)
             conn.commit()
 
+            # TO DO: Analyse delay when updating db
             db.execute("SELECT id FROM projects ORDER BY created_at DESC LIMIT 1")
             rows = db.fetchone()
             project_id = rows[0]
@@ -289,6 +294,7 @@ def new_project():
         except Exception as e:
             conn.rollback()
             return apology(f"An error occurred inserting your project on database: {str(e)}", 500)
+        
         finally:
             db.close()
 
@@ -324,7 +330,6 @@ def control_panel():
         selected_project_ids = [int(id) for id in request_data.get("selected_project_ids")]
 
         # Discart projects not fundable or refundable
-
         admin_action_projects = check_projects_action(admin_projects_list, selected_project_ids, operation_type)
 
         if operation_type == "refund":
@@ -341,10 +346,12 @@ def control_panel():
 @app.route("/statusupdate", methods=["POST"])
 @freighter_required
 def status_update():
+    # TO DO: Change this to a scheduled task
 
     try:
         update_database_status()
         return make_response("OK", 200)
+    
     except Exception as e:
         print(f"Error updating projects status: {e}")
         return apology("Internal server error", 500)
@@ -393,10 +400,8 @@ def build_admin_transaction():
 
 
 def build_payment_transaction(operations_list, operation_type):
-    """ Build one operation per project, grouping into one transaction.
+    """ Builds one operation per project, grouping into one transaction.
     Each transaction has it's own operation type (donation for users and fund/refund for admin)"""
-
-    server = Server("https://horizon-testnet.stellar.org")
 
     # Check if destination account exists
     for operation in operations_list:
@@ -432,7 +437,6 @@ def build_payment_transaction(operations_list, operation_type):
     db = conn.cursor(dictionary=True)
     db.execute("SELECT * FROM temp_operations")
     temp_transactions_list = db.fetchall()
-    #temp_transactions_list = db.execute("SELECT * FROM temp_operations")
 
     # Reset table if it's not empty
     if temp_transactions_list:
@@ -463,8 +467,6 @@ def build_payment_transaction(operations_list, operation_type):
 def send_transaction():
     """Submit transaction to Stellar"""
 
-    server = Server("https://horizon-testnet.stellar.org")
-
     try:
         # Get signed transaction and submit
         signed_transaction = request.get_json()
@@ -474,7 +476,6 @@ def send_transaction():
         if submit_response["successful"] == True:
 
             hash = submit_response["hash"]
-            #temp_table = db.execute("SELECT * FROM temp_operations")
 
             update_transactions_database(hash)
 
