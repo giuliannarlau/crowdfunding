@@ -2,14 +2,8 @@ import mysql.connector
 import os
 import time
 
-#import ast
-#import requests
-#import certifi
-
-from cs50 import SQL
 from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, session, url_for
-from flask_session import Session
 
 from stellar_sdk import Asset, Network, Server, TransactionBuilder
 from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
@@ -18,7 +12,7 @@ from helpers import apology, check_amount, check_projects_action, format_date, f
 
 # Configure flask
 app = Flask(__name__)
-app.secret_key = "changeIt2145"
+app.secret_key = os.environ.get('SECRET_KEY')
 
 load_dotenv()
 

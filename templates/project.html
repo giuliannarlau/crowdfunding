@@ -27,17 +27,17 @@
       <!-- Info cards with project data -->
       <div class="col-lg-7">
 
-        <div class="row">
+        <div class="row align-items-center">
 
-          <div class="col">
-            <div class="info-card w-75">
+          <div class="col d-flex justify-content-center">
+            <div class="info-card">
               <div class="info-card-title">{{ project['total_donations'] }}</div>
               <p class="info-card-text">Donated</p>
             </div>
           </div>
 
-          <div class="col">
-            <div class="info-card w-75">
+          <div class="col d-flex justify-content-center">
+            <div class="info-card">
               <div class="info-card-title">{{ project['goal'] }}</div>
               <p class="info-card-text">Goal</p>
             </div>
@@ -46,10 +46,10 @@
         </div>
 
         <!-- Project description -->
-        <div class="row text-start mt-5">
+        <div class="row text-start mt-4">
 
           <div class="col">
-            <p class="fs-5 mw-50">
+            <p class="text-small">
             {{ project["description"] }}
             </p>
           </div>
@@ -63,7 +63,7 @@
             <!-- Customized message and donation collapse -->
             <div class="row">
               <div class="col">
-                <p class="text-center fs-5">
+                <p class="text-small">
                   This project is {{ project["funding_progress"] }} funded and you can donate until {{ project["expire_date"] }}.
                 </p>
               </div>
@@ -96,7 +96,7 @@
             <div class="row">
 
               <div class="col">
-                <p class="text-start fs-5">
+                <p class="text-start text-small">
                   Your project's goal wasn't reached yet, but you have until {{ project["expire_date"] }} to receive donations.
                 </p>
                 <button class="btn btn-light mx-auto p-3 w-25" data-bs-toggle="modal" data-bs-target="#editProjectModal">
@@ -133,57 +133,57 @@
     </div>
 
     <!-- Modal to edit project data -->
-    <div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModal" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit project</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal fade mx-auto" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModal" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit project</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+  
+          <div class="modal-body">
+  
+            <form action="/project/{{ project['project_id'] }}" method="post" id="editProjectForm">
+              <input hidden type="text" class="form-control-plaintext" id="projectId" value="{{ project['project_id'] }}">
+  
+              <div class="input-group flex-nowrap">
+                <span class="input-group-text">NAME</span>
+                <input required type="text" class="form-control" id="newName" name="newName" value="{{ project['name'] }}" minlength="3" maxlength="20">
+              </div>
+  
+              <div class="input-group flex-nowrap">
+                <span class="input-group-text">CATEGORY</span>
+                <select required class="form-select" id="newCategory" name="newCategory">
+                  <option disabled selected>Select a new category</option>
+                  {% for category in categories_list %}
+                      <option> {{ category }} </option>
+                  {% endfor %}
+                </select>
+              </div>
+  
+              <div class="input-group flex-nowrap">
+                <span class="input-group-text">GOAL</span>
+                <input required type="number" min="1" class="form-control" id="newGoal" name="newGoal" value="{{ project['goal'] }}">
+              </div>
+  
+              <div class="input-group flex-nowrap">
+                <span class="input-group-text">EXPIRE DATE</span>
+                <input required type="date" class="form-control" id="newExpireDate" name="newExpireDate" value="{{ project['expire_date'] }}" min="" onclick="getCurrentDate(this)">
+              </div>
+  
+              <div class="input-textarea">
+                <span class="span-textarea" minlength="5" maxlength="150">DESCRIPTION</span>
+                <textarea required type="text" class="form-control" id="newDescription" name="newDescription"></textarea>
+              </div>
+            </div>
+  
+            <div class="modal-footer align-self-center w-25">
+              <button type="submit" form="editProjectForm" class="btn btn-dark" id="editProjectButton">SAVE CHANGES</button>
+            </div>
+          </form>
         </div>
-
-        <div class="modal-body">
-
-          <form action="/project/{{ project['project_id'] }}" method="post" id="editProjectForm">
-            <input hidden type="text" class="form-control-plaintext" id="projectId" value="{{ project['project_id'] }}">
-
-            <div class="input-group flex-nowrap">
-              <span class="input-group-text">NAME</span>
-              <input required type="text" class="form-control" id="newName" name="newName" value="{{ project['name'] }}" minlength="3" maxlength="20">
-            </div>
-
-            <div class="input-group flex-nowrap">
-              <span class="input-group-text">CATEGORY</span>
-              <select required class="form-select" id="newCategory" name="newCategory">
-                <option disabled selected>Select a new category</option>
-                {% for category in categories_list %}
-                    <option> {{ category }} </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="input-group flex-nowrap">
-              <span class="input-group-text">GOAL</span>
-              <input required type="number" min="1" class="form-control" id="newGoal" name="newGoal" value="{{ project['goal'] }}">
-            </div>
-
-            <div class="input-group flex-nowrap">
-              <span class="input-group-text">EXPIRE DATE</span>
-              <input required type="date" class="form-control" id="newExpireDate" name="newExpireDate" value="{{ project['expire_date'] }}" min="" onclick="getCurrentDate(this)">
-            </div>
-
-            <div class="input-textarea">
-              <span class="span-textarea" minlength="5" maxlength="150">DESCRIPTION</span>
-              <textarea required type="text" class="form-control" id="newDescription" name="newDescription"></textarea>
-            </div>
-          </div>
-
-          <div class="modal-footer align-self-center w-25">
-            <button type="submit" form="editProjectForm" class="btn btn-dark" id="editProjectButton">SAVE CHANGES</button>
-          </div>
-        </form>
       </div>
-    </div>
-    </div>
+      </div>
 
   </div>
 

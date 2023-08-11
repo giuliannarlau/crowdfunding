@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
 categories_list = ["Books", "Games", "Music", "Technology", "All"]
-status_list = ["Active", "Fund", "Refund", "Successful", "Unsuccessful"]
+status_list = ["Active", "Fund", "Refund", "Successful", "Unsuccessful", "All"]
 sort_list = ["Category", "Name", "Status", "All"]
 
 db_host = os.environ['DB_HOST']
@@ -163,7 +163,7 @@ def check_projects_action(projects_list, project_ids, operation_type):
 
 
 def validate_input(project):
-    # TO DO: Change it, too many if's 
+    # TO DO: Change it, too many if's
 
     for key, value in project.items():
         if not value:

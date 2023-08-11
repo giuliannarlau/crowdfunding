@@ -41,7 +41,7 @@
           <input autocomplete="off" autofocus type="text" class="form-control" id="filter" name="filter" >
         </div>
 
-        <div class="col-md text-center">
+        <div class="col-md mt-auto">
           <button type="submit" action="/filter_projects" method="post" class="btn btn-outline-light search-button" id="searchButton">SEARCH</button>
         </div>
       </div>
@@ -52,28 +52,28 @@
     <!-- Info cards section -->
     <div class="row justify-content-center my-5">
 
-        <div class="col-md-3 col-md fs-4">
+        <div class="col-md-3 col-md">
           <div class="info-card">
             <div class="info-card-title">{{ admin_projects_list | count }}</div>
             <p class="info-card-text">PROJECTS CREATED</p>
           </div>
         </div>
         
-        <div class="col-md-3 col-md fs-4">
+        <div class="col-md-3 col-md">
           <div class="info-card">
             <div class="info-card-title">{{ admin_projects_list | sum(attribute='total_donations') }}</div>
             <p class="info-card-text">LUMENS RECEIVED</p>
           </div>
         </div>
 
-        <div class="col-md-3 col-md fs-4">
+        <div class="col-md-3 col-md">
           <div class="info-card">
             <div class="info-card-title">{{ admin_projects_list|selectattr("status", "equalto", "active") | list | length }}</div>
             <p class="info-card-text">ACTIVE PROJECTS</p>
           </div>
         </div>
 
-        <div class="col-md-3 col-md fs-4">
+        <div class="col-md-3 col-md">
           <div class="info-card">
             <div class="info-card-title">{{ admin_projects_list | sum(attribute='goal') }}</div>
             <p class="info-card-text">FUNDING GOAL</p>

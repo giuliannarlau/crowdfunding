@@ -72,9 +72,9 @@ block main %}
       </div>
 
       <!-- Image preview -->
-      <div class="col-md-4 mb-3 imgCol" class="imageCol">
+      <div class="col-md-4 mb-3">
         <div class="container" id="previewContainer">
-          <img id="imagePreview" src="/static/theo.jpg" alt="project image" />
+          <img id="imagePreview"  src="/static/theo.jpg" alt="project image" />
           <div class="d-flex justify-content-between">
             <label
               for="imgInp"
@@ -127,7 +127,7 @@ block main %}
       <div class="col-lg-7 col-md">
         <div
           class="input-group flex-nowrap"
-          style="max-width: 600px !important"
+          style="min-height: 200px !important; max-width: 500px !important"
         >
           <textarea
             required
@@ -145,10 +145,10 @@ block main %}
         </div>
       </div>
 
-      <div class="col-sm-5 col-md my-auto text-start">
+      <div class="col-sm-5 col-md m-auto">
         <button
           type="submit"
-          class="btn btn-lg btn-outline-light ms-3"
+          class="btn btn-lg btn-outline-light"
           id="createProjectBtn"
         >
           CREATE PROJECT
