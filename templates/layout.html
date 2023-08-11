@@ -46,6 +46,7 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbar">
+
           <ul class="navbar-nav me-auto mt-2">
             <li class="nav-item">
               <a class="nav-link" href="/about">ABOUT US</a>
@@ -68,7 +69,9 @@
               {% endif %}
             {% endif %}
           </ul>
+
           <div class="d-flex justify-content-center justify-content-md-end">
+
             {% if not session["public_key"] %}
               <button
                 type="button"
@@ -80,7 +83,9 @@
                 CONNECT
               </button>
             {% else %}
-              <a type="button" class="btn btn-outline-dark" href="/logout">DISCONNECT</a>
+              <a type="button" class="btn btn-outline-dark" href="/logout"
+                >DISCONNECT</a
+              >
             {% endif %}
           </div>
         </div>

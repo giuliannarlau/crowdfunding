@@ -11,7 +11,7 @@ window.onload = function() {
 }
 
 
-/* NEW PROJECT and PROJECT PAGE (modal) */
+/* NEW PROJECT AND PROJECT PAGE (MODAL) */
 
 // Get current date to set as min for date inputs
 function getCurrentDate(minDateInput) {
@@ -21,7 +21,7 @@ function getCurrentDate(minDateInput) {
 }
 
 
-/* INDEX (startProjectButton) and PROJECT PAGE (donateButton) */
+/* INDEX */
 
 // Check if user connected wallet
 function checkUser(element) {
@@ -271,12 +271,9 @@ async function processAdminAction(operationType) {
             },
             body: JSON.stringify({ selected_project_ids: selectedProjectIds }),
         });
+
         let data = await responseFund.json();
         let responseProjects = data.admin_action_projects;
-        console.log(responseProjects);
-
-        // TO DO: This build the table with JS, it would be better to do it with jinja
-            // Or maybe leave it in JS, but transfer code to html and hid instead of creating here
         const projectsForm = document.getElementById("projectsForm");
         projectsForm.innerHTML = "";
 
@@ -353,7 +350,6 @@ function buildAdminTransaction(responseProjects, operationType) {
                 body: JSON.stringify({ admin_operations: responseProjects })
             };
 
-
             let response = await fetch("/build_admin_transaction", requestOptions);
             let data = await response.json();
             let transactionXdr = data.transaction_xdr
@@ -363,7 +359,6 @@ function buildAdminTransaction(responseProjects, operationType) {
 
             // Send transaction to Stellar
             let hash = await sendTransaction(signedTransaction);
-
 
              // Send transaction to Stellar and display hash
             document.getElementById("modalTitle").innerHTML = "Transaction completed!";

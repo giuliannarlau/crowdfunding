@@ -8,6 +8,7 @@ function showImagePreview(imgInp) {
 
     const file = imgInp.files[0];
 
+    // Limit file size
     if (file.size > 400000) {
 
         document.getElementById("modalTitle").innerHTML = "Oops! The image size is too large";

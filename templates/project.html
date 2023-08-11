@@ -50,7 +50,7 @@
 
           <div class="col">
             <p class="text-small">
-            {{ project["description"] }}
+              {{ project["description"] }}
             </p>
           </div>
 
@@ -67,19 +67,15 @@
                   This project is {{ project["funding_progress"] }} funded and you can donate until {{ project["expire_date"] }}.
                 </p>
               </div>
-
             </div>
 
             <div class="d-flex flex-column flex-md-row ">
-
               <div class="col-sm my-auto">
                 <button type="button" class="btn btn-light p-3" id="backProjectButton" data-bs-toggle="collapse" data-bs-target="#donationCollapse" aria-expanded="false" aria-controls="collapseExample"  name="{{ session['public_key'] }}" onclick="checkUser(this)">
                   BACK THIS PROJECT
                 </button>
               </div>
-
               <div class="vr"></div>
-
               <div class="col-sm">
                 <div class="collapse pe-1" id="donationCollapse">
                   <form class="d-flex p-2">
@@ -88,13 +84,11 @@
                   </form>
                 </div>
               </div>
-
             </div>
 
           <!-- If it's an active project and -->
           {% else %}
             <div class="row">
-
               <div class="col">
                 <p class="text-start text-small">
                   Your project's goal wasn't reached yet, but you have until {{ project["expire_date"] }} to receive donations.
@@ -110,7 +104,6 @@
         <!-- Expired projects info (just for creator's account) -->
         {% else %}
           <div class="row">
-
             <div class="col">
               <p class="text-start fs-5">
                 {% if project["status"] == "funded" %}
@@ -122,7 +115,6 @@
                 {% endif %}
               </p>
             </div>
-
           </div>
         {% endif %}
 
@@ -142,7 +134,6 @@
           </div>
   
           <div class="modal-body">
-  
             <form action="/project/{{ project['project_id'] }}" method="post" id="editProjectForm">
               <input hidden type="text" class="form-control-plaintext" id="projectId" value="{{ project['project_id'] }}">
   
@@ -156,7 +147,7 @@
                 <select required class="form-select" id="newCategory" name="newCategory">
                   <option disabled selected>Select a new category</option>
                   {% for category in categories_list %}
-                      <option> {{ category }} </option>
+                    <option> {{ category }} </option>
                   {% endfor %}
                 </select>
               </div>

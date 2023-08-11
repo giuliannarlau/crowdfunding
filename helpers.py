@@ -25,7 +25,6 @@ db_user = os.environ['DB_USER']
 db_password = os.environ['DB_PASSWORD']
 db_name = os.environ['DB_NAME']
 
-
 conn = mysql.connector.connect(
     host=db_host,
     user=db_user,
