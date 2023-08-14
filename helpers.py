@@ -1,9 +1,8 @@
 import base64
 import boto3
 import math
-import schedule
 import secrets
-import time
+import traceback
 
 from db_config import connection_pool
 from datetime import datetime
@@ -55,24 +54,26 @@ def get_total_donations(projects_list):
     connection = connection_pool.get_connection()
     db = connection.cursor(dictionary=True)
 
+    total_donations = None
     try:
-        for project in projects_list:
-
-            # Get total amount of donations
-            query = "SELECT SUM(amount) as donations FROM transactions WHERE project_id = %s AND type = %s"
-            params = (project["project_id"], "donation")
-            db.execute(query, params)
-
-            total_donations = db.fetchone()["donations"] or 0
-            project["total_donations"] = total_donations
+        query = "SELECT project_id, SUM(amount) as donations FROM transactions WHERE type = %s GROUP BY project_id"
+        params = ("donation",)
+        db.execute(query, params)
+        total_donations = db.fetchall()
 
     except Exception as e:
-        print(str(e))
+        print("Error getting donations: ", str(e))
 
     finally:
         if connection.is_connected():
             db.close()
             connection.close()
+
+    donations_dict = {item['project_id']: int(item['donations']) for item in total_donations}
+    
+    for project in projects_list:
+        donations_from_transactions = donations_dict.get(project["project_id"], 0)
+        project["total_donations"] = donations_from_transactions
     
     # Returns the received project list on exceptions
     return projects_list
@@ -88,16 +89,6 @@ def get_const_list(const_list):
         const_list = status_list
 
     return const_list
-
-
-def run_schedule():
-    # TO DO: Finish
-
-    schedule.every().day.at("02:00").do(update_database_status)
-
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
 
 
 """ VALIDATION """
@@ -226,6 +217,7 @@ def search_projects(name="", category="", status="", id=""):
 
             days_remaining = project["expire_date"] - datetime.today()
             days_left = days_remaining.days
+            
             if days_left == 0:
                 project["days_left"] = "last day"
             elif days_left == 1:
@@ -293,44 +285,94 @@ def search_supported_projects():
 
 """ UPDATE DB """
 
-def update_database_status():
-    """ Updates project's status when expired.
-    From active to: fund, refund or unsuccessful """
+def fetch_active_projects():
 
-    try:
-        connection = connection_pool.get_connection()
-        db = connection.cursor(dictionary=True)
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
+
+    try:    
         db.execute("SELECT id AS project_id, expire_date, goal FROM projects WHERE status = 'active'")
-        
-        projects_list = db.fetchall()
-        projects_list = get_total_donations(projects_list)
-
-        for project in projects_list:
-
-            # Update status of expired projects
-            if project["expire_date"] < datetime.today():
-
-                # Projects that achieved their funding goal will be funded by admin
-                if project["total_donations"] >= project["goal"]:
-                    db.execute("UPDATE projects SET status = %s WHERE id = %s", ("fund", project["project_id"]))
-
-                # Projects with no amount of donations pass directly to unsuccessful
-                elif project["total_donations"] == 0:
-                    db.execute("UPDATE projects SET status = %s WHERE id = %s", ("unsuccessful", project["project_id"]))
-
-                # Projects that didn't achieve their funding goal will have their donations returned to backers
-                else:
-                    db.execute("UPDATE projects SET status = %s WHERE id = %s", ("refund", project["project_id"]))
-
+        active_projects = db.fetchall()
+        return active_projects
+    
     except Exception as e:
         connection.rollback()
-        print(str(e))
+        raise Exception("Error on fetch active projects: ", str(e))
     
     finally:
         if connection.is_connected():
             db.close()
             connection.close()
 
+
+def change_status(projects_list):
+
+    projects_list = [project for project in projects_list if project is not None]
+    
+    connection = connection_pool.get_connection()
+    db = connection.cursor(buffered=True, dictionary=True)
+
+    try:
+        for project in projects_list:
+
+            if project == None:
+                continue
+   
+            # Update status of expired projects
+            if project["expire_date"] < datetime.today():
+
+                new_status = None
+                # Projects that achieved their funding goal will be funded by admin
+                if project["total_donations"] >= project["goal"]:
+                    new_status = "fund"
+                
+                # Projects with no amount of donations pass directly to unsuccessful
+                elif project["total_donations"] == 0:
+                    new_status = "unsuccessful"
+                
+                # Projects that didn't achieve their funding goal will have their donations returned to backers
+                else:
+                    new_status = "refund"
+
+                query = "UPDATE projects SET status = %s WHERE id = %s"
+                params = (new_status, project["project_id"])
+                db.execute(query, params)
+                connection.commit()
+
+    except Exception as e:
+        connection.rollback()
+        print("Error on change status: ", str(e))
+        return False
+    
+    finally:
+        if connection.is_connected():
+            db.close()
+            connection.close()
+    
+    return True
+
+
+def update_database_status():
+    """ Updates project's status when expired.
+    From active to: fund, refund or unsuccessful """
+
+    # Select all active projects
+    try:
+        projects_list = fetch_active_projects()
+        if not projects_list:
+            return
+
+        # Get total donations and update 'project' on database
+        projects_list = get_total_donations(projects_list)
+        change_status(projects_list)
+
+    except Exception as e:
+        error_msg = "Error on update database status: " + str(e)
+        traceback_msg = traceback.format_exc()
+        full_error_msg = error_msg + "\nTraceback:\n" + traceback_msg
+        print(full_error_msg)
+        return error_msg
+       
 
 def update_transactions_database(hash):
     """ Updates transactions table with donation data and project status after admin fund / refund projects"""

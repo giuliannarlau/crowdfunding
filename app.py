@@ -3,7 +3,7 @@ import time
 
 from db_config import connection_pool
 from dotenv import load_dotenv
-from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask import Flask, jsonify, make_response, redirect, render_template, request, session, url_for
 from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_database_status, update_transactions_database, upload_image, validate_input
 from stellar_sdk import Asset, Network, Server, TransactionBuilder
 from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
@@ -509,8 +509,3 @@ def send_transaction():
     except (BadRequestError, BadResponseError) as e:
         print(str(e))
         return apology("Error submitting transaction to Stellar", 500)
-
-
-@app.route("/test", methods=["GET", "POST"])
-def test():
-    return render_template("test.html")
