@@ -1,14 +1,13 @@
-import mysql.connector
 import os
 import time
 
+from db_config import connection_pool
 from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, make_response, redirect, render_template, request, session, url_for
-
+from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_database_status, update_transactions_database, upload_image, validate_input
 from stellar_sdk import Asset, Network, Server, TransactionBuilder
 from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
 
-from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, generate_project_id, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_database_status, update_transactions_database, upload_image, validate_input
 
 # Configure flask
 app = Flask(__name__)
@@ -16,25 +15,14 @@ app.secret_key = os.environ.get('SECRET_KEY')
 
 load_dotenv()
 
+# All testnet Stellar accounts reset periodically (https://developers.stellar.org/docs/fundamentals-and-concepts/testnet-and-pubnet)
 admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
+
+# Set Horizon 
 server = Server("https://horizon-testnet.stellar.org")
 
 
-db_host = os.environ['DB_HOST']
-db_port = os.environ['DB_PORT']
-db_user = os.environ['DB_USER']
-db_password = os.environ['DB_PASSWORD']
-db_name = os.environ['DB_NAME']
-
-conn = mysql.connector.connect(
-    host=db_host,
-    user=db_user,
-    password=db_password,
-    database=db_name,
-    port=db_port
-)
-
-
+# Variables used on templates
 @app.context_processor
 def global_variables():
     admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
@@ -70,7 +58,8 @@ def index():
             session["public_key"] = public_key
             return make_response("OK", 200)
 
-        except:
+        except Exception as e:
+            print(str(e))
             return apology("Internal server error", 500)
 
     # Get active projects from database
@@ -109,7 +98,7 @@ def projects():
         }
 
         if validate_input(project_search) != True:
-            return apology(validate_input(project_search))
+            return apology(validate_input(project_search), 400)
 
         projects_list = search_projects(request.form.get("searchProjectName"), project_search["category"], "active")
 
@@ -137,21 +126,27 @@ def project_page(project_id):
         }
 
         if validate_input(project) != True:
-            return apology(validate_input(project))
+            return apology(validate_input(project), 400)
 
         # Update table projects and return project page refreshed
-        db = conn.cursor()
+        connection = connection_pool.get_connection()
+        db = connection.cursor()
+
         try:
             query = ("UPDATE projects SET name = %s, category = %s, goal = %s, expire_date = %s, description = %s WHERE id = %s")
             params = (project["name"], project["category"], project["goal"], project["expire_date"], project["description"], project_id)
             db.execute(query, params)
-            conn.commit()
+            connection.commit()
         
-        except:
-            conn.rollback()
+        except Exception as e:
+            connection.rollback()
+            print(str(e))
+            return apology("Error editing project.", 500)
         
         finally:
-            db.close()
+            if connection.is_connected():
+                db.close()
+                connection.close()
         
         return redirect(url_for("project_page", project_id=project_id))
 
@@ -169,24 +164,35 @@ def donate():
     data = request.get_json()
     project_id = data.get("project_id")
 
-    # Get project info from db
-    db = conn.cursor(dictionary=True)
+    # Open pool connection
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
+
     query = "SELECT status, public_key FROM projects WHERE id = %s"
     params = (project_id,)
     db.execute(query, params)
     project_data = db.fetchone()
 
+    if connection.is_connected():
+        db.close()
+        connection.close()
+
     # Check if project is valid for user to donate
     if project_data["status"] != "active":
-        return apology("You can't donate to an expired project.")
+        msg = "Expired projects can't receive donations."
+        print(msg)
+        return apology("msg", 400)
 
     if project_data["public_key"] == session["public_key"]:
-        return apology("You can't fund your own project.")
+        msg = "Self donations are not allowed."
+        print(msg)
+        return apology("msg", 400)
 
     amount = data.get("amount")
     if not check_amount(amount):
-        err = 400
-        return jsonify(err=err)
+        msg = "Invalid amount."
+        print(msg)
+        return apology(msg, 400)
 
     operation_data = [{
         "project_id": project_id,
@@ -195,10 +201,14 @@ def donate():
         "destination_account": admin_account,
     }]
 
-    transaction_xdr = build_payment_transaction(operation_data, "donation")
-
-    return jsonify(transaction_xdr=str(transaction_xdr))
-
+    try:
+        transaction_xdr = build_payment_transaction(operation_data, "donation")
+        return jsonify(transaction_xdr=str(transaction_xdr))
+    
+    except Exception as e:
+        print(str(e))
+        return apology("Something went wrong building payment transaction.", 500)
+    
 
 @app.route("/myaccount", methods=["GET", "POST"])
 @freighter_required
@@ -219,7 +229,7 @@ def my_account():
         }
 
         if validate_input(project_search) != True:
-            return apology(validate_input(project_search))
+            return apology(validate_input(project_search), 400)
 
         # Get projects data (with filters)
         projects_list = search_projects(request.form.get("searchProjectName"), project_search["category"], project_search["status"])
@@ -252,7 +262,6 @@ def new_project():
         expire_date = format_date(request.form.get("projectExpireDate"), "long_datetime_db")
 
         project = {
-            "id": generate_project_id(),
             "category": request.form.get("projectCategory"),
             "goal": request.form.get("projectGoal"),
             "name": request.form.get("projectName"),
@@ -262,38 +271,44 @@ def new_project():
         }
 
         if validate_input(project) != True:
-            return apology(validate_input(project))
-
+            return apology(validate_input(project), 400)
+        
+        file_url = None
         try:
             file_url = upload_image(project["image"])
-        except:
-            return apology("Something went wrong with your image upload.", 500)
+        
+        except Exception as e:
+            print(str(e))
+            return apology("Image upload failed.", 500)
 
-        # Update table projects
-        db = conn.cursor()
+        # Start pool connection
+        connection = connection_pool.get_connection()
+        db = connection.cursor()
 
         try:
-            query = ("INSERT INTO projects (id, public_key, name, category, goal, expire_date, status, image_path, description) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)")
-            params = (project["id"], session["public_key"], project["name"], project["category"], project["goal"], project["expire_date"], "active", file_url, project["description"])
-
-            db = conn.cursor()
+            # Update table projects
+            query = ("INSERT INTO projects (public_key, name, category, goal, expire_date, status, image_path, description) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)")
+            params = (session["public_key"], project["name"], project["category"], project["goal"], project["expire_date"], "active", file_url, project["description"])
             db.execute(query, params)
-            conn.commit()
+            connection.commit()
 
-            # TO DO: Analyse delay when updating db
+            # Get project id
             db.execute("SELECT id FROM projects ORDER BY created_at DESC LIMIT 1")
             rows = db.fetchone()
             project_id = rows[0]
-
+        
         except Exception as e:
-            conn.rollback()
+            connection.rollback()
+            print(str(e))
             return apology(f"An error occurred inserting your project on database: {str(e)}", 500)
         
         finally:
-            db.close()
+            if connection.is_connected():
+                db.close()
+                connection.close()
 
         # Get project ID
-        return redirect("/")
+        return redirect(url_for("project_page", project_id=project_id))
 
     filename = "theo.jpg"
 
@@ -347,8 +362,8 @@ def status_update():
         return make_response("OK", 200)
     
     except Exception as e:
-        print(f"Error updating projects status: {e}")
-        return apology("Internal server error", 500)
+        print(str(e))
+        return apology("Error updating projects status on database", 500)
 
 
 
@@ -362,11 +377,15 @@ def filter_projects():
     }
 
     if validate_input(project_search) != True:
-        return apology(validate_input(project_search))
+        return apology(validate_input(project_search), 400)
 
-    admin_projects_list = search_projects(request.form.get("searchProjectName"), project_search["category"], project_search["status"])
-
-    return render_template("controlpanel.html", admin_projects_list=admin_projects_list)
+    try:
+        admin_projects_list = search_projects(request.form.get("searchProjectName"), project_search["category"], project_search["status"])
+        return render_template("controlpanel.html", admin_projects_list=admin_projects_list)
+    
+    except Exception as e:
+        print(str(e))
+        return apology("Error filtering projects.", 500)
 
 
 @app.route("/build_admin_transaction", methods=["POST"])
@@ -388,11 +407,15 @@ def build_admin_transaction():
         for project in data
     ]
 
-    transaction_xdr = build_payment_transaction(admin_operations, operation_type)
+    try:
+        transaction_xdr = build_payment_transaction(admin_operations, operation_type)
+        return jsonify(transaction_xdr=str(transaction_xdr))
+    
+    except Exception as e:
+        print(str(e))
+        return apology("Something went wrong building payment transaction.", 500)
 
-    return jsonify(transaction_xdr=str(transaction_xdr))
-
-
+  
 def build_payment_transaction(operations_list, operation_type):
     """ Builds one operation per project, grouping into one transaction.
     Each transaction has it's own operation type (donation for users and fund/refund for admin)"""
@@ -428,7 +451,9 @@ def build_payment_transaction(operations_list, operation_type):
     )
 
     # Get temporary transactions table (stored in the temp database)
-    db = conn.cursor(dictionary=True)
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
+
     db.execute("SELECT * FROM temp_operations")
     temp_transactions_list = db.fetchall()
 
@@ -443,8 +468,10 @@ def build_payment_transaction(operations_list, operation_type):
         # Save operations temporarily to update database after submitting transaction
         db.execute("INSERT INTO temp_operations (project_id, amount, destination_account, type) VALUES(%s, %s, %s, %s)", (operation["project_id"], operation["amount"], operation["destination_account"], operation_type))
 
-    conn.commit()
-    db.close()
+    connection.commit()
+    if connection.is_connected():
+        db.close()
+        connection.close()
 
     # Set max timelimit (in seconds) to process transaction
     transaction.set_timeout(30)
@@ -469,16 +496,19 @@ def send_transaction():
         # Get hash and update database with new transaction
         if submit_response["successful"] == True:
 
-            hash = submit_response["hash"]
-
-            update_transactions_database(hash)
-
-        return jsonify(submit_response)
+            try:
+                hash = submit_response["hash"]
+                update_transactions_database(hash)
+                return jsonify(submit_response)
+            
+            except Exception as e:
+                print(str(e))
+                return apology("Error updating transactions into database", 500)
 
     # Handle default Stellar errors
-    except (BadRequestError, BadResponseError) as err:
-        print(f"Something went wrong sendind transaction to Stelllar network!\n{err}")
-        return err
+    except (BadRequestError, BadResponseError) as e:
+        print(str(e))
+        return apology("Error submitting transaction to Stellar", 500)
 
 
 @app.route("/test", methods=["GET", "POST"])

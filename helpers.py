@@ -1,12 +1,11 @@
-import os
 import base64
 import boto3
 import math
-import mysql.connector
 import schedule
 import secrets
 import time
 
+from db_config import connection_pool
 from datetime import datetime
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
@@ -18,20 +17,6 @@ admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
 categories_list = ["Books", "Games", "Music", "Technology", "All"]
 status_list = ["Active", "Fund", "Refund", "Successful", "Unsuccessful", "All"]
 sort_list = ["Category", "Name", "Status", "All"]
-
-db_host = os.environ['DB_HOST']
-db_port = os.environ['DB_PORT']
-db_user = os.environ['DB_USER']
-db_password = os.environ['DB_PASSWORD']
-db_name = os.environ['DB_NAME']
-
-conn = mysql.connector.connect(
-    host=db_host,
-    user=db_user,
-    password=db_password,
-    database=db_name,
-    port=db_port
-)
 
 
 def format_date(date, date_type):
@@ -61,13 +46,14 @@ def calculate_project_progress(projects_list):
         return projects_list
 
     except Exception as e:
-        print("An error occurred calculating project progress:", str(e))
+        print("Error calculating project progress: ", str(e))
         return None
 
 
 def get_total_donations(projects_list):
 
-    db = conn.cursor(dictionary=True)
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
 
     try:
         for project in projects_list:
@@ -81,14 +67,16 @@ def get_total_donations(projects_list):
             project["total_donations"] = total_donations
 
     except Exception as e:
-        print("An error occurred searching total donations:", str(e))
-    
+        print(str(e))
+
     finally:
-        db.close()
+        if connection.is_connected():
+            db.close()
+            connection.close()
     
+    # Returns the received project list on exceptions
     return projects_list
     
-
 
 def get_const_list(const_list):
     """ Get constant list os default values """
@@ -100,27 +88,6 @@ def get_const_list(const_list):
         const_list = status_list
 
     return const_list
-
-
-def generate_project_id():
-
-    db = conn.cursor()
-    project_id = 1
-
-    try:
-        db.execute("SELECT id FROM projects")
-        results = db.fetchall()
-        ids_list = [row[0] for row in results]
-        while project_id in ids_list:
-            project_id += 1
-    
-    except Exception as e:
-        print(f"Error trying to generate new id: {e}")
-    
-    finally:
-        db.close()
-    
-    return project_id
 
 
 def run_schedule():
@@ -177,7 +144,7 @@ def validate_input(project):
             return f"Value '{value}' is not a valid {key}."
 
         if key == "expire_date" and value < datetime.today():
-            return f"Please provide an expiration date that has not passed yet."
+            return f"Past expiration dates are not allowed."
 
     return True
 
@@ -185,9 +152,10 @@ def validate_input(project):
 """ SEARCH """
 
 def search_donations_history(name="", category="", status=""):
-    """ Search for detailed donatioapologns history to display on myaccount """
+    """ Search for detailed donation history to display on myaccount """
 
-    db = conn.cursor(dictionary=True)
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
     
     query = (
         "SELECT t.project_id, p.name, p.category, t.amount, t.timestamp, t.hash FROM transactions t "
@@ -198,7 +166,9 @@ def search_donations_history(name="", category="", status=""):
     db.execute(query, params)
 
     projects_list = db.fetchall()
-    db.close()
+    if connection.is_connected():
+        db.close()
+        connection.close()
 
     for project in projects_list:
         project["timestamp"] = format_date(project["timestamp"], "medium_string")
@@ -211,6 +181,7 @@ def clean_filter_value(value):
         return ""
     return value
 
+
 def search_projects(name="", category="", status="", id=""):
     """ Search projects data and total donations.
      Parameters are optional, returning all projects if none is passed """
@@ -218,7 +189,10 @@ def search_projects(name="", category="", status="", id=""):
     # TO DO: Change this, too long
 
     projects_list = []
-    db = conn.cursor(dictionary=True)
+
+    # Start pool connection
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
 
     # Clean filter values
     category = clean_filter_value(category)
@@ -239,9 +213,11 @@ def search_projects(name="", category="", status="", id=""):
         params = ("%" + name + "%", "%" + category + "%", "%" + status + "%", id)
 
     db.execute(query, params)
-    
     projects_list = db.fetchall()
-    db.close()
+    
+    if connection.is_connected():
+        db.close()
+        connection.close()
 
     for project in projects_list:
 
@@ -267,8 +243,9 @@ def search_projects(name="", category="", status="", id=""):
 def search_refund_operations(projects_list):
 
     refundable_projects = []
-    db = conn.cursor(dictionary=True)
-    
+
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
     
     for project in projects_list:
 
@@ -285,7 +262,9 @@ def search_refund_operations(projects_list):
 
         refundable_projects.extend(doners_operations)
 
-    db.close()
+    if connection.is_connected():
+        db.close()
+        connection.close()
 
     return refundable_projects
 
@@ -293,7 +272,8 @@ def search_refund_operations(projects_list):
 def search_supported_projects():
     """ Search for projects supported by user """
 
-    db = conn.cursor(dictionary=True)
+    connection = connection_pool.get_connection()
+    db = connection.cursor(dictionary=True)
 
     query = (
         "SELECT t.project_id, p.name, p.category, p.status, p.goal, SUM(amount) AS your_donations FROM transactions t "
@@ -304,7 +284,9 @@ def search_supported_projects():
     db.execute(query, params)
     projects_list = db.fetchall()
     
-    db.close()
+    if connection.is_connected():
+        db.close()
+        connection.close()
 
     return calculate_project_progress(projects_list)
 
@@ -316,8 +298,10 @@ def update_database_status():
     From active to: fund, refund or unsuccessful """
 
     try:
-        db = conn.cursor(dictionary=True)
+        connection = connection_pool.get_connection()
+        db = connection.cursor(dictionary=True)
         db.execute("SELECT id AS project_id, expire_date, goal FROM projects WHERE status = 'active'")
+        
         projects_list = db.fetchall()
         projects_list = get_total_donations(projects_list)
 
@@ -339,18 +323,22 @@ def update_database_status():
                     db.execute("UPDATE projects SET status = %s WHERE id = %s", ("refund", project["project_id"]))
 
     except Exception as e:
-        conn.rollback()
-        print(f"An error occurred trying to update status: {e}")
+        connection.rollback()
+        print(str(e))
     
     finally:
-        db.close() 
+        if connection.is_connected():
+            db.close()
+            connection.close()
 
 
 def update_transactions_database(hash):
     """ Updates transactions table with donation data and project status after admin fund / refund projects"""
 
     try:
-        db = conn.cursor(dictionary=True)
+        connection = connection_pool.get_connection()
+        db = connection.cursor(dictionary=True)
+        
         db.execute("SELECT * FROM temp_operations")
         temp_table = db.fetchall()
 
@@ -377,14 +365,16 @@ def update_transactions_database(hash):
             params = (operation["project_id"], operation["amount"], public_key_sender, public_key_receiver, hash, operation["type"])
             db.execute(query, params)
 
-        conn.commit()
+        connection.commit()
     
     except Exception as e:
-        conn.rollback()
-        print(f"An error occurred trying to update transactions: {e}")
-    
+        connection.rollback()
+        print(str(e))
+
     finally:
-        db.close()
+        if connection.is_connected():
+            db.close()
+            connection.close()
 
 
 def upload_image(base64_img):
@@ -407,7 +397,7 @@ def upload_image(base64_img):
         return file_url
 
     except Exception as e:
-        print(e)
+        print(str(e))
         return e
 
 

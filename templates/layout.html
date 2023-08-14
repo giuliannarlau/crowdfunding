@@ -46,7 +46,6 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbar">
-
           <ul class="navbar-nav me-auto mt-2">
             <li class="nav-item">
               <a class="nav-link" href="/about">ABOUT US</a>
@@ -54,38 +53,36 @@
             <li class="nav-item">
               <a class="nav-link" href="/projects">PROJECTS</a>
             </li>
-            {% if session["public_key"] %}
-              {% if session["public_key"] == admin_account %}
-                <li class="nav-item">
-                  <a class="nav-link" href="/controlpanel">CONTROL PANEL</a>
-                </li>
-              {% else %}
-                <li class="nav-item">
-                  <a class="nav-link" href="/myaccount">MY ACCOUNT</a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="/newproject">NEW PROJECT</a>
-                </li>
-              {% endif %}
-            {% endif %}
+            {% if session["public_key"] %} {% if session["public_key"] ==
+            admin_account %}
+            <li class="nav-item">
+              <a class="nav-link" href="/controlpanel">CONTROL PANEL</a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="/myaccount">MY ACCOUNT</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/newproject">NEW PROJECT</a>
+            </li>
+            {% endif %} {% endif %}
           </ul>
 
           <div class="d-flex justify-content-center justify-content-md-end">
-
             {% if not session["public_key"] %}
-              <button
-                type="button"
-                class="btn btn-outline-dark"
-                id="connectButton"
-                data-bs-toggle="modal"
-                data-bs-target="#connectWalletModal"
-              >
-                CONNECT
-              </button>
+            <button
+              type="button"
+              class="btn btn-outline-dark"
+              id="connectButton"
+              data-bs-toggle="modal"
+              data-bs-target="#connectWalletModal"
+            >
+              CONNECT
+            </button>
             {% else %}
-              <a type="button" class="btn btn-outline-dark" href="/logout"
-                >DISCONNECT</a
-              >
+            <a type="button" class="btn btn-outline-dark" href="/logout"
+              >DISCONNECT</a
+            >
             {% endif %}
           </div>
         </div>
@@ -176,7 +173,10 @@
       </div>
     </div>
 
-    <main class="wrapper">{% block main %} {% endblock %}</main>
+    <main class="wrapper">
+      {% block main %}
+      {% endblock %}
+    </main>
 
     <footer class="footer">
       <nav class="navbar navbar-expand-sm mb-0">
