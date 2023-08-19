@@ -28,7 +28,7 @@ footer {
   margin-top: 15px;
 }
 
-/* Divisors */
+/* Dividers */
 
 hr {
   color: #fea928;
@@ -43,6 +43,7 @@ hr {
 }
 
 /* Navbars for header and footer */
+
 nav {
   background: white;
 }
@@ -60,78 +61,75 @@ nav {
   transform: scale(1.1);
 }
 
-/* Titles */
-h1 {
-  font-size: calc(15px + 1.7vw);
-  text-align: start;
-  margin-bottom: 30px;
-}
-
-h2 {
-  font-size: calc(12px + 1.5vw);
-}
-
-h3 {
-  color: #fea928;
-  height: 60px;
-  margin: 0;
-  padding-top: 15px;
-}
-
-.title-bold {
-  font-size: 22px;
-  font-weight: bold;
-  margin: 15px auto;
-}
-
-.text-dark {
-  color: #000041;
-}
-
-.text-medium {
-  font-size: calc(12px + 1vw);
-}
-
-.text-small {
-  font-size: calc(8px + 1vw);
-}
-
 .wrapper {
   flex: 1;
 }
 
+
+/* Text colors */
+
+.text-orange {
+  color:#fea928;
+}
+
+.text-dark {
+  color: #050b3a;
+}
+
+
 /* Inputs and selects */
+
 input,
 select {
-  font-size: calc(12px + 1vw);
   height: 50px;
   width: 300px;
 }
 
+input[type="file"] {
+  display: none;
+}
+
+.input-group {
+  margin: 10px auto 40px;
+  max-width: 350px;
+  max-height: 60px;
+}
+
+.input-textarea {
+  position: relative;
+  margin: 10px auto 40px;
+  max-width: 600px;
+  min-width: 360px;
+}
+
+
 /* Image cards */
-.card {
+
+.project-card {
+  align-items: center;
   border: transparent;
   box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.5), 0 6px 10px 0 rgba(0, 0, 0, 0.4);
-  margin: auto;
-  max-width: 340px;
+  height: 100%;
+  margin:auto;
+  max-height: 450px;
+  max-width: 320px;
   text-align: center;
 }
 
-.project-card {
-  margin-bottom: 10px;
-}
-
 .card-img {
-  border-bottom: 2px solid lightgrey;
-  max-height: 300px;
-}
-
-.card-header {
-  background: rgba(0, 0, 0, 0.2);
+  height: 310px;
+  width: 100%;
+  object-fit: cover;
 }
 
 .card-body {
-  max-height: 100px;
+  max-height: 80px;;
+}
+
+.card-footer {
+  padding: 12px 10px;
+  max-height: 60px;
+  width: 100%
 }
 
 .card-title {
@@ -140,48 +138,26 @@ select {
   text-shadow: 1px 1px #2c0c91;
 }
 
-.card-text {
-  color: #050b3a;
-}
-
-.card-footer {
-  max-height: 150px;
-}
 
 /* Cards used to display info */
+
 .info-card {
+  align-items: center;
   background-color: white;
   border-radius: 0.5rem;
   box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.5), 0 6px 10px 0 rgba(0, 0, 0, 0.4);
-  margin:auto;
+  color: #c9451c;
+  margin: auto;
   margin-bottom: 10px;
-  padding: 5%;
+  padding: 2%;
   text-align: center;
-  width: calc(150px + 10vw);
-  max-height: 85%;
-  max-width: 90%;
+  max-height: 85px;
+  max-width: 80%;
+  min-width: 170px;
 }
 
 .info-card-title {
-  color: #c9451c;
-  font-size: calc(10px + 1vw);
-  margin: auto;
-}
-
-.info-card-text {
-  color: #c9451c;
-  font-size: calc(5px + 1vw);
-  margin: auto;
-}
-
-
-@media (max-width: 768px) {
-
-  .info-card {
-    height: calc(25px + 5vw);
-    padding: 2%;
-    width: calc(150px + 10.5vw);
-  }
+  font-size: 25px;
 }
 
 .img-fluid {
@@ -189,97 +165,157 @@ select {
   min-width: 30vw;
 }
 
-.img-medium {
-  max-width: 80%;
-}
-
-#imgCol {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  position: relative;
-}
 
 /* Buttons */
-.btn-dark {
+
+button:hover {
+  transform: scale(1.05);
+}
+
+.btn-darkblue {
   background: #0d062d;
   color: white;
 }
 
-.btn-dark:hover {
+.btn-darkblue:hover {
   background: #0d062d;
-  transform: scale(1.1);
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1), 0 2px 6px 0 rgba(0, 0, 0, 0.7);
+  color: white;
 }
 
-.btn-light {
+.btn-white {
   background: white;
   border: 3px solid #fea928;
   color: #000041;
-  font-size: calc(9px + 0.5vw);
-  font-weight: 20px;
-  max-height: 65px;
-  min-width: 100px;
 }
 
-.btn-light:hover {
+.btn-white:hover {
   background: transparent;
   border: 1px solid #fea928;
   box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.5), 0 6px 10px 0 rgba(0, 0, 0, 0.4);
   color: white;
-  transform: scale(1.1);
 }
 
-.btn-outline-dark {
+.btn-outline-darkblue {
   background: transparent;
   border: 2px solid #000041;
   color: #000041;
+  
 }
 
-.btn-outline-dark:hover {
+.btn-outline-darkblue:hover {
   background: #0d062d;
-  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1), 0 2px 6px 0 rgba(0, 0, 0, 0.7);
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1), 0 2px 4px 0 rgba(0, 0, 0, 0.7);
   color: white;
-  transform: scale(1.1);
 }
 
-.btn-outline-light {
+.btn-orange {
+  background: #fea928;
+  border: none;
+  color: white;
+}
+
+.btn-orange:hover {
+  opacity: 0.8;
+  transform: none;
+}
+
+
+.btn-outline-orange {
   border: 1px solid #fea928;
   box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1), 0 2px 6px 0 rgba(0, 0, 0, 0.7);
   color: white;
-  font-size: calc(8px + 0.5vw) !important;
-  font-weight: 20px;
-  max-height: 65px;
-  min-width: 100px;
-  max-width: 300px;
 }
 
-.btn-outline-light:hover {
+.btn-outline-orange:hover {
   background: white;
   color: #000041;
   transform: scale(1.1);
 }
 
-.btn-xl {
+.btn-xlarge {
+  font-size: 18px;
+  font-weight: 20px;
   padding: 20px;
+  margin: 10px;
+  max-height: 65px;
+  max-width: 320px;
+  min-width: 150px;
+  width:80%;
+}
+
+.btn-large {
+  font-weight: 20px;
+  padding: 20px;
+  margin: 10px;
+  max-height: 65px;
+  max-width: 250px;
+  min-width: 250px;
   width: 40%;
 }
 
-.btn-lg {
-  margin: 10px;
-  padding: 20px;
-  width: 85%;
+.btn-medium {
+  padding: 15px;
+  width: 40%;
+  max-width: 190px;
 }
 
+.btn-small {
+  font-size: 15px;
+  max-height: 50px;
+  max-width: 130px;
+  width: 50%;
+}
+
+.btn-xsmall {
+  font-size: 13px;
+  margin: auto;
+  max-height: 35px;
+  max-width: 110px;
+  width: 32%;
+}
+
+
+/* FAQ and About lists */
+
+.list-outline-orange {
+  border: 1px solid #fea928;
+  border-radius: 15px;
+  height: 100%;
+  padding-bottom: 15px;
+  padding-top: 15px;
+}
+
+.list-group-item {
+  border-radius: 15px;
+  max-width: 90%;
+  padding: 16px;
+}
+
+.list-group-title {
+  font-size: 22px;
+  margin-bottom: 15px;
+  text-align: start;
+}
+
+.item-description {
+  font-size: 18px;
+}
+
+
 /* Modals */
+
 .modal {
-  color: #000041;
+  color: #050b3a;
 }
 
 .modal td {
-  color: #000041;
+  color: #050b3a;
 }
 
-/* On tabs for admin myaccount page */
+
+/* On tabs for admin page */
+
 #fund-tab,
 #refund-tab,
 #all-tab {
@@ -300,61 +336,35 @@ td {
   color: #dcdee0;
 }
 
-.list-outline-orange {
-  border: 1px solid #fea928;
-  border-radius: 15px;
-}
 
-.list-group-item {
-  border-radius: 15px;
-  margin-top: 15px;
-  max-width: 90%;
-  padding: 22px;
-}
-
-
-/* Search tab for page projects and myaccount */
+/* Search bar */
 
 .search-form label {
   color: #dcdee0;
-  font-size: calc(12px + 0.3vw);
+  font-size: 18px;
   margin-bottom: 10px;
 }
 
 .search-form input,
 .search-form select {
-  font-size: calc(12px + 0.3vw);
-  height: calc(18px + 2vw);
-  margin-top: auto;
+  border-radius: 5px;
+  padding: 5px 13px;
+  margin: auto;
 }
 
-.search-button {
-  height: calc(20px + 2vw);
-  width: calc(40px + 2.5vw);
-}
 
-@media (max-width: 768px) {
-  .search-button {
-    margin-top: 15px;
-  }
+/* Containers */
 
-  .search-form input,
-  .search-form select {
-    height: calc(20px + 5vw);
-    width: calc(170px + 10.5vw);
-  }
-}
-
-/* Homepage */
+/* Index */
 #homepageContainer {
   min-height: 100%;
   min-width: 100%;
-  padding: 8%;
-  padding-top: 3%;
+  padding: 3% 8%;
+  text-align: justify;
 }
 
 
-/* Projects Page */
+/* Projects */
 #projectsContainer {
   min-height: 100%;
   min-width: 100%;
@@ -362,18 +372,18 @@ td {
   padding-top: 3%;
 }
 
+/* New Project */
 #newProjectContainer {
-  margin-bottom: 40px;
   min-height: 100%;
   min-width: 100%;
-  padding: 8%;
+  padding: 3%;
   padding-top: 3%;
   text-align: center;
 }
 
+/* Project */
 #projectPageContainer {
   margin-top: 5%;
-  margin-bottom: 5%;
   min-height: 100%;
   min-width: 100%;
   padding-left: 5%;
@@ -381,36 +391,46 @@ td {
   text-align: center;
 }
 
+/* My Account */
 #accountContainer {
-  margin-top: 5%;
-  margin-bottom: 5%;
-  min-height: 100%;
-  min-width: 100%;
-  padding-left: 8%;
-  padding-right: 10%;
-  text-align: center;
-}
-
-#controlPanelContainer {
-  margin-top: 5%;
-  margin-bottom: 5%;
-  min-height: 100%;
-  min-width: 100%;
-  padding-left: 8%;
-  padding-right: 10%;
-  text-align: center;
-}
-
-#aboutContainer {
-  margin-bottom: 40px;
   min-height: 100%;
   min-width: 100%;
   padding: 8%;
+  padding-bottom: 1%;
+  padding-top: 3%;
+}
+
+/* Control Panel */
+#controlPanelContainer {
+  margin-top: 5%;
+  min-height: 100%;
+  min-width: 100%;
+  padding-left: 8%;
+  padding-right: 10%;
+  text-align: center;
+}
+
+/* About Us */
+#aboutContainer {
+  min-height: 100%;
+  min-width: 100%;
+  padding: 8%;
+  padding-bottom: 1%;
   padding-top: 3%;
   text-align: justify;
 }
 
-/* PROJECT PAGE */
+/* FAQ */
+#faqContainer {
+  min-height: 100%;
+  min-width: 100%;
+  padding: 8%;
+  padding-bottom: 1%;
+  padding-top: 3%;
+  text-align: justify;
+}
+
+/* Project Page */
 
 #donationCollapse label {
   color: white;
@@ -424,15 +444,6 @@ td {
   max-width: 30%;
 }
 
-
-/* On new project page */
-.input-group {
-  margin: 10px auto 40px;
-  max-width: 350px;
-  max-height: 60px;
-}
-
-
 #editProjectModal {
   left: 50%;
   max-width: 700px;
@@ -445,7 +456,7 @@ td {
 }
 
 #editProjectForm input,
-select {
+#editProjectForm select {
   display: flex;
   margin: auto;
   max-width: 500px;
@@ -456,16 +467,8 @@ select {
   margin: 10px auto 40px;
 }
 
-input[type="file"] {
-  display: none;
-}
 
-.input-textarea {
-  position: relative;
-  margin: 10px auto 40px;
-  max-width: 600px;
-  min-width: 360px;
-}
+/* New Project page */
 
 #startProjectLink:hover {
   background: transparent;
@@ -473,23 +476,27 @@ input[type="file"] {
   transform: scale(1.1);
 }
 
-#previewContainer,
-#cropperContainer {
-  justify-content: center;
-  justify-items: center;
+
+#imagePreview,
+#imageCropped {
+  object-fit: cover;
+  min-height: 280px;
+  min-width: 300px;
   max-height: 300px;
   max-width: 330px;
 }
 
-#imagePreview,
-#imageCropped {
-  display: block;
-  height: 300px;
-  width: 330px;
-
+#previewContainer,
+#cropperContainer {
+  margin-left: 3px;
+  min-height: 280px;
+  min-width: 300px;
+  max-height: 300px;
+  max-width: 330px;
 }
 
 /* Control panel page */
+
 #projectsAdminTable th,
 td {
   background-color: transparent !important;
@@ -507,16 +514,4 @@ td {
 
 .admin-project-checkbox {
   width: 25px;
-}
-
-#containerDark {
-  background-image: url("../static/blackandpurplelighter.jpg");
-  background-repeat: no-repeat;
-  background-size: cover;
-  min-height: 100%;
-  min-width: 100%;
-}
-
-#blackContainer {
-  background: linear-gradient(100deg, #1c031e, #351038);
 }

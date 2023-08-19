@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+
+{% block title %}
+  My Projects
+{% endblock %}
+
+{% block main %}
+
+<div class="container" id="accountContainer">
+  
+  {% with parent_page = "my_account" %}
+    {% include "search.html" %}
+  {% endwith %}
+
+  <!-- Projects section -->
+  <div class="row justify-content-center my-5 gap-4">
+
+    {% if projects_list|length == 0 %}
+
+      <!-- No projects created info -->
+      <div class="row text-center">
+        <div class="col-md-6 col-md">
+          <p class="fs-4">No projects found.</p>
+        </div>
+        <div class="col-md-6 col-md">
+          <a class="btn btn-white btn-large" id="startProjectLink" href="/newproject"
+            >START PROJECT</a
+          >
+        </div>
+      </div>
+
+      <hr />
+
+    {% else %}
+
+      <!-- Projects list with image cards -->
+      {% include "projects_list.html" %}
+    
+    {% endif %}
+
+  {% endblock %}

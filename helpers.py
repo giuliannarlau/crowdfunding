@@ -2,20 +2,24 @@ import base64
 import boto3
 import math
 import secrets
-import traceback
 
 from db_config import connection_pool
 from datetime import datetime
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
 
-# Configure flask
 app = Flask(__name__)
 
 admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
 categories_list = ["Books", "Games", "Music", "Technology", "All"]
 status_list = ["Active", "Fund", "Refund", "Successful", "Unsuccessful", "All"]
 sort_list = ["Category", "Name", "Status", "All"]
+
+
+def clean_filter_value(value):
+    if value.lower() == "all":
+        return ""
+    return value
 
 
 def format_date(date, date_type):
@@ -28,25 +32,20 @@ def format_date(date, date_type):
     # Medium dates are shown on client side
     elif date_type == "medium_string":
         new_date = date.strftime("%d/%m/%Y")
-    elif date_type == "long_datetime":
-        new_date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
 
     return new_date
 
 
-def calculate_project_progress(projects_list):
-    """ Calculate percentage of funding progress """
-    
-    try:
-        projects_list = get_total_donations(projects_list)
-        for project in projects_list:
-            project["funding_progress"] = f'{math.floor(project["total_donations"] / project["goal"] * 100)}%'
-        
-        return projects_list
+def get_const_list(const_list):
+    """ Get lists of default values """
 
-    except Exception as e:
-        print("Error calculating project progress: ", str(e))
-        return None
+    if const_list == "category":
+        const_list = categories_list
+    
+    elif const_list == "status":
+        const_list = status_list
+
+    return const_list
 
 
 def get_total_donations(projects_list):
@@ -77,18 +76,44 @@ def get_total_donations(projects_list):
     
     # Returns the received project list on exceptions
     return projects_list
+
+
+def calculate_project_days_left(projects_list):
+    """ Calculate remaining active project days """
+
+    for project in projects_list:
+
+        if project["status"] == "active":
+
+            days_remaining = project["expire_date"] - datetime.today()
+            days_left = days_remaining.days
+            
+            if days_left == 0:
+                project["days_left"] = "last day"
+            elif days_left == 1:
+                project["days_left"] = "{} day left".format(days_left)
+            else:
+                project["days_left"] = "{} days left".format(days_left)
+        
+        else:
+            project["days_left"] = 0
+
+    return projects_list
+
+
+def calculate_project_progress(projects_list):
+    """ Calculate percentage of funding progress """
     
+    try:
+        projects_list = get_total_donations(projects_list)
+        for project in projects_list:
+            project["funding_progress"] = f'{math.floor(project["total_donations"] / project["goal"] * 100)}%'
+        
+        return projects_list
 
-def get_const_list(const_list):
-    """ Get constant list os default values """
-
-    if const_list == "category":
-        const_list = categories_list
-    
-    elif const_list == "status":
-        const_list = status_list
-
-    return const_list
+    except Exception as e:
+        print("Error calculating project progress: ", str(e))
+        return None
 
 
 """ VALIDATION """
@@ -109,7 +134,8 @@ def check_amount(value):
 
 
 def check_projects_action(projects_list, project_ids, operation_type):
-    """ Check if projects selected by admin have the same status as operation required """
+    """ Check if projects selected by admin have the same status as operation required
+     and return only the ones that fit. """
 
     projects_checked = []
     for project in projects_list:
@@ -120,16 +146,16 @@ def check_projects_action(projects_list, project_ids, operation_type):
 
 
 def validate_input(project):
-    # TO DO: Change it, too many if's
+    # TODO: Change it, too many if's
 
     for key, value in project.items():
-        if not value:
+        if not value and key != "name":
             return f"Field {key} is empty."
         
         if key in ["category", "status"]:
             accepted_values = get_const_list(key)
             if value not in accepted_values:
-                return f"Value '{value}' is not a valid  {key}."
+                return f"Value '{value}' is not a valid {key}."
 
         if key == "goal" and not check_amount(value):
             return f"Value '{value}' is not a valid {key}."
@@ -143,7 +169,7 @@ def validate_input(project):
 """ SEARCH """
 
 def search_donations_history(name="", category="", status=""):
-    """ Search for detailed donation history to display on myaccount """
+    """ Search for detailed donation history to display on my_donations """
 
     connection = connection_pool.get_connection()
     db = connection.cursor(dictionary=True)
@@ -161,23 +187,16 @@ def search_donations_history(name="", category="", status=""):
         db.close()
         connection.close()
 
+    # Format friendly date
     for project in projects_list:
         project["timestamp"] = format_date(project["timestamp"], "medium_string")
 
     return projects_list
 
 
-def clean_filter_value(value):
-    if value.lower() == "all":
-        return ""
-    return value
-
-
 def search_projects(name="", category="", status="", id=""):
-    """ Search projects data and total donations.
-     Parameters are optional, returning all projects if none is passed """
-
-    # TO DO: Change this, too long
+    """ Search projects data with optional parameters:
+     project's name, category, status and project id """
 
     projects_list = []
 
@@ -189,20 +208,15 @@ def search_projects(name="", category="", status="", id=""):
     category = clean_filter_value(category)
     status = clean_filter_value(status)
 
-    if not id:
-        query = (
-            "SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects "
-            "WHERE name LIKE %s AND category LIKE %s AND status LIKE %s ORDER BY status"
-        )
-        params = ("%" + name + "%", "%" + category + "%", "%" + status + "%")
-    
-    else:
-        query = (
-            "SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects "
-            "WHERE name LIKE %s AND category LIKE %s AND status LIKE %s AND id = %s ORDER BY status"
-        )
-        params = ("%" + name + "%", "%" + category + "%", "%" + status + "%", id)
+    query = ("SELECT id AS project_id, name, category, status, public_key, expire_date, goal, image_path, description FROM projects "
+            "WHERE name LIKE %s AND category LIKE %s AND status LIKE %s"
+    )
+    params = ("%" + name + "%", "%" + category + "%", "%" + status + "%")
 
+    if id:
+        query = query + " AND id = %s "
+        params = params + (id,)
+    
     db.execute(query, params)
     projects_list = db.fetchall()
     
@@ -210,29 +224,18 @@ def search_projects(name="", category="", status="", id=""):
         db.close()
         connection.close()
 
+    # This function assumes expire_date is type datetime. Move with care.
+    projects_list = calculate_project_days_left(projects_list)
+    
+    # Format friendly date
     for project in projects_list:
-
-        # Calculate remaining active project days
-        if project["status"] == "active":
-
-            days_remaining = project["expire_date"] - datetime.today()
-            days_left = days_remaining.days
-            
-            if days_left == 0:
-                project["days_left"] = "last day"
-            elif days_left == 1:
-                project["days_left"] = "{} day left".format(days_left)
-            else:
-                project["days_left"] = "{} days left".format(days_left)
-        else:
-            project["days_left"] = 0
-
         project["expire_date"] = format_date(project["expire_date"], "medium_string")
 
     return calculate_project_progress(projects_list)
 
 
 def search_refund_operations(projects_list):
+    """ Search total donation amount per doner/project for admin to refund """
 
     refundable_projects = []
 
@@ -282,97 +285,7 @@ def search_supported_projects():
 
     return calculate_project_progress(projects_list)
 
-
-""" UPDATE DB """
-
-def fetch_active_projects():
-
-    connection = connection_pool.get_connection()
-    db = connection.cursor(dictionary=True)
-
-    try:    
-        db.execute("SELECT id AS project_id, expire_date, goal FROM projects WHERE status = 'active'")
-        active_projects = db.fetchall()
-        return active_projects
-    
-    except Exception as e:
-        connection.rollback()
-        raise Exception("Error on fetch active projects: ", str(e))
-    
-    finally:
-        if connection.is_connected():
-            db.close()
-            connection.close()
-
-
-def change_status(projects_list):
-
-    projects_list = [project for project in projects_list if project is not None]
-    
-    connection = connection_pool.get_connection()
-    db = connection.cursor(buffered=True, dictionary=True)
-
-    try:
-        for project in projects_list:
-
-            if project == None:
-                continue
-   
-            # Update status of expired projects
-            if project["expire_date"] < datetime.today():
-
-                new_status = None
-                # Projects that achieved their funding goal will be funded by admin
-                if project["total_donations"] >= project["goal"]:
-                    new_status = "fund"
-                
-                # Projects with no amount of donations pass directly to unsuccessful
-                elif project["total_donations"] == 0:
-                    new_status = "unsuccessful"
-                
-                # Projects that didn't achieve their funding goal will have their donations returned to backers
-                else:
-                    new_status = "refund"
-
-                query = "UPDATE projects SET status = %s WHERE id = %s"
-                params = (new_status, project["project_id"])
-                db.execute(query, params)
-                connection.commit()
-
-    except Exception as e:
-        connection.rollback()
-        print("Error on change status: ", str(e))
-        return False
-    
-    finally:
-        if connection.is_connected():
-            db.close()
-            connection.close()
-    
-    return True
-
-
-def update_database_status():
-    """ Updates project's status when expired.
-    From active to: fund, refund or unsuccessful """
-
-    # Select all active projects
-    try:
-        projects_list = fetch_active_projects()
-        if not projects_list:
-            return
-
-        # Get total donations and update 'project' on database
-        projects_list = get_total_donations(projects_list)
-        change_status(projects_list)
-
-    except Exception as e:
-        error_msg = "Error on update database status: " + str(e)
-        traceback_msg = traceback.format_exc()
-        full_error_msg = error_msg + "\nTraceback:\n" + traceback_msg
-        print(full_error_msg)
-        return error_msg
-       
+""" UPDATE DATABASES """
 
 def update_transactions_database(hash):
     """ Updates transactions table with donation data and project status after admin fund / refund projects"""

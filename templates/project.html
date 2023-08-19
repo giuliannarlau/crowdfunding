@@ -11,17 +11,45 @@
     <!-- Image card -->
     <div class="row">
 
-      <div class="col-lg-5"> 
-        <div class="card mb-3 w-75">
-          <img class="card-img" id="projectImage" src="{{ project['image_path'] }}" alt="project image">
-            <div class="card-text">
-            <div class="card-body">
-              <div class="card-text">
-                {{ project["project_id"] }} | {{ project["name"] }} | {{ project["category"] }}
-              </div>
-            </div>
-            </div>
+      <div class="col-lg-5 mb-3"> 
+        <div class="card project-card">
+
+          <img
+            src="{{ project['image_path'] }}"
+            class="card-img"
+            alt="project image"
+          />
+
+          <button disabled class="btn-orange w-100">
+            {% if project["public_key"] == session["public_key"] %}
+              Your project
+            {% endif %}
+          </button>
+
+          <div class="card-body d-flex w-100 justify-content-center">
+            <p class="card-text text-dark ms-2 my-auto">
+              ID {{ project["project_id"] }} | {{ project["name"] }} | {{ project["category"] }}
+            </p>
           </div>
+  
+          <div class="card-footer">
+            {% if project["status"] in ["active"] %}
+              <button disabled class="btn btn-primary btn-sm">
+                {{ "Active" | capitalize }}
+              </button>
+              <button disabled class="btn btn-outline-dark btn-sm">
+                {{ project["days_left"] }}
+              </button>
+            {% else %}
+              <button disabled class="btn btn-danger btn-sm">
+                {{ "Expired" | capitalize }}
+              </button>
+            {% endif %}
+            <button disabled class="btn btn-success btn-sm">
+              {{ project["funding_progress"] }} funded
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Info cards with project data -->
@@ -29,14 +57,14 @@
 
         <div class="row align-items-center">
 
-          <div class="col d-flex justify-content-center">
+          <div class="col justify-content-center">
             <div class="info-card">
               <div class="info-card-title">{{ project['total_donations'] }}</div>
               <p class="info-card-text">Donated</p>
             </div>
           </div>
 
-          <div class="col d-flex justify-content-center">
+          <div class="col justify-content-center">
             <div class="info-card">
               <div class="info-card-title">{{ project['goal'] }}</div>
               <p class="info-card-text">Goal</p>
@@ -49,7 +77,7 @@
         <div class="row text-start mt-4">
 
           <div class="col">
-            <p class="text-small">
+            <p class="fs-5">
               {{ project["description"] }}
             </p>
           </div>
@@ -63,15 +91,15 @@
             <!-- Customized message and donation collapse -->
             <div class="row">
               <div class="col">
-                <p class="text-small">
+                <p class="fs-5">
                   This project is {{ project["funding_progress"] }} funded and you can donate until {{ project["expire_date"] }}.
                 </p>
               </div>
             </div>
 
-            <div class="d-flex flex-column flex-md-row ">
+            <div class="d-flex flex-column flex-md-row">
               <div class="col-sm my-auto">
-                <button type="button" class="btn btn-light p-3" id="backProjectButton" data-bs-toggle="collapse" data-bs-target="#donationCollapse" aria-expanded="false" aria-controls="collapseExample"  name="{{ session['public_key'] }}" onclick="checkUser(this)">
+                <button type="button" class="btn btn-white p-3" id="backProjectButton" data-bs-toggle="collapse" data-bs-target="#donationCollapse" aria-expanded="false" aria-controls="collapseExample"  name="{{ session['public_key'] }}" onclick="checkUser(this)">
                   BACK THIS PROJECT
                 </button>
               </div>
@@ -80,7 +108,7 @@
                 <div class="collapse pe-1" id="donationCollapse">
                   <form class="d-flex p-2">
                     <input required type="number" class="form-control mx-3 w-50" id="donationAmount" name="donationAmount" min="1" placeholder="Amount">
-                    <button type="submit" class="btn btn-light" id="donateButton" onclick="processDonation()">DONATE</button>
+                    <button type="submit" class="btn btn-white" id="donateButton" onclick="processDonation()">DONATE</button>
                   </form>
                 </div>
               </div>
@@ -90,10 +118,10 @@
           {% else %}
             <div class="row">
               <div class="col">
-                <p class="text-start text-small">
+                <p class="fs-5">
                   Your project's goal wasn't reached yet, but you have until {{ project["expire_date"] }} to receive donations.
                 </p>
-                <button class="btn btn-light mx-auto p-3 w-25" data-bs-toggle="modal" data-bs-target="#editProjectModal">
+                <button class="btn btn-white mx-auto btn-medium" data-bs-toggle="modal" data-bs-target="#editProjectModal">
                   EDIT PROJECT
                 </button>
               </div>
@@ -105,7 +133,7 @@
         {% else %}
           <div class="row">
             <div class="col">
-              <p class="text-start fs-5">
+              <p class="fs-5">
                 {% if project["status"] == "funded" %}
                     Congrats! Your project expired at {{ project["expire_date"] }} and reached <b>{{ project["donations"] }} donations</b>.
                 {% elif project["status"] == "fund" %}
@@ -169,7 +197,7 @@
             </div>
   
             <div class="modal-footer align-self-center w-25">
-              <button type="submit" form="editProjectForm" class="btn btn-dark" id="editProjectButton">SAVE CHANGES</button>
+              <button type="submit" form="editProjectForm" class="btn btn-darkblue" id="editProjectButton">SAVE CHANGES</button>
             </div>
           </form>
         </div>
@@ -178,6 +206,15 @@
 
   </div>
 
+  {% block scripts %}
+    <script src="{{ url_for('.static', filename='project.js') }}" async></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"
+      integrity="sha512-6lplKUSl86rUVprDIjiW8DuOniNX8UDoRATqZSds/7t6zCQZfaCe3e5zcGaQwxa8Kpn5RTM9Fvl3X2lLV4grPQ=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  {% endblock %}
 
 {% endblock %}
 

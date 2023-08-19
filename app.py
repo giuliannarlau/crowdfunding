@@ -4,7 +4,7 @@ import time
 from db_config import connection_pool
 from dotenv import load_dotenv
 from flask import Flask, jsonify, make_response, redirect, render_template, request, session, url_for
-from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_database_status, update_transactions_database, upload_image, validate_input
+from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_transactions_database, upload_image, validate_input
 from stellar_sdk import Asset, Network, Server, TransactionBuilder
 from stellar_sdk.exceptions import NotFoundError, BadResponseError, BadRequestError
 
@@ -22,13 +22,16 @@ admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
 server = Server("https://horizon-testnet.stellar.org")
 
 
-# Variables used on templates
+
 @app.context_processor
 def global_variables():
+    """ Variables used on templates """
+
     admin_account = "GCLMA7L4TWKF2NZYKT3W5OZCJ6IBLLPN3P7Q5JRFRTV3FRMCR3BEGYQR"
     categories_list = ["Books", "Games", "Music", "Technology"]
     status_list = ["Active", "Fund", "Refund", "Successful", "Unsuccessful"]
     return dict(categories_list=categories_list, status_list=status_list, admin_account=admin_account)
+
 
 @app.after_request
 def after_request(response):
@@ -70,6 +73,7 @@ def index():
 
     return render_template("index.html", projects_list=projects_list)
 
+
 @app.route("/logout")
 def logout():
     """ Disconnect Wallet """
@@ -87,7 +91,7 @@ def about():
 
 @app.route("/projects", methods=["GET", "POST"])
 def projects():
-    """ Show active projects """
+    """ Show all projects """
 
     projects_list = []
 
@@ -103,10 +107,9 @@ def projects():
         projects_list = search_projects(request.form.get("searchProjectName"), project_search["category"], "active")
 
     else:
-        projects_list = search_projects(status="active")
+        projects_list = search_projects()
 
     return render_template("projects.html", projects_list=projects_list)
-
 
 
 @app.route("/project/<int:project_id>", methods=["GET", "POST"])
@@ -210,49 +213,41 @@ def donate():
         return apology("Something went wrong building payment transaction.", 500)
     
 
-@app.route("/myaccount", methods=["GET", "POST"])
+@app.route("/my_projects")
 @freighter_required
-def my_account():
-    """ Personal user page with all projects and donations info """
+def my_projects():
+    """ Personal user page with all user's projects """
 
-    # If admin tries to access myaccount, redirect to control panel
+    # If admin tries to access my_account, redirect to control panel
     if session["public_key"] == admin_account:
-        return redirect("/controlpanel")
+        return redirect("/control_panel")
 
-    projects_list = []
-
-    # Handle search
-    if request.method == "POST":
-        project_search = {
-            "category": request.form.get("searchProjectCategory"),
-            "status": request.form.get("searchProjectStatus"),
-        }
-
-        if validate_input(project_search) != True:
-            return apology(validate_input(project_search), 400)
-
-        # Get projects data (with filters)
-        projects_list = search_projects(request.form.get("searchProjectName"), project_search["category"], project_search["status"])
-
-        # Get donation data (with filters)
-        supported_projects = search_supported_projects()
-        user_donations_list = search_donations_history(request.form.get("searchProjectName"), project_search["category"], project_search["status"])
-
-    else:
-         # Get donations full data
-        projects_list = search_projects()
-
-         # Get projects full data
-        supported_projects = search_supported_projects()
-        user_donations_list = search_donations_history()
+    # Get donations full data
+    projects_list = search_projects()
 
     # Filter only user's projects
-    user_projects_list = [project for project in projects_list if project["public_key"] == session["public_key"]]
+    projects_list = [project for project in projects_list if project["public_key"] == session["public_key"]]
 
-    return render_template("myaccount.html", user_projects_list=user_projects_list, supported_projects=supported_projects, user_donations_list=user_donations_list)
+    return render_template("my_projects.html", projects_list=projects_list)
 
 
-@app.route("/newproject", methods=["GET", "POST"])
+@app.route("/my_donations")
+@freighter_required
+def my_donations():
+    """ Personal user page with all user's donations """
+
+    # If admin tries to access, redirect to control panel
+    if session["public_key"] == admin_account:
+        return redirect("/control_panel")
+
+    # Get user's donation data
+    supported_projects = search_supported_projects()
+    user_donations_list = search_donations_history()
+
+    return render_template("my_donations.html", user_donations_list=user_donations_list, supported_projects=supported_projects)
+
+
+@app.route("/new_project", methods=["GET", "POST"])
 @freighter_required
 def new_project():
     """ Save a new project """
@@ -312,22 +307,22 @@ def new_project():
 
     filename = "theo.jpg"
 
-    return render_template("newproject.html", filename=filename)
+    return render_template("new_project.html", filename=filename)
 
 
 """ ADMIN ROUTES """
 
-@app.route("/controlpanel", methods=["GET", "POST"])
+@app.route("/control_panel", methods=["GET", "POST"])
 @freighter_required
 def control_panel():
     """ Control page for admin to fund and refund expired projects """
 
     # If user tries to access control panel, redirect to my account page
     if session["public_key"] != admin_account:
-        return redirect("/myaccount")
+        return redirect("/my_projects")
 
     # Get all projects from database
-    admin_projects_list = search_projects()
+    projects_list = search_projects()
 
     # Handle fund and refund transactions
     if request.method == "POST":
@@ -339,7 +334,7 @@ def control_panel():
         selected_project_ids = [int(id) for id in request_data.get("selected_project_ids")]
 
         # Discart projects not fundable or refundable
-        admin_action_projects = check_projects_action(admin_projects_list, selected_project_ids, operation_type)
+        admin_action_projects = check_projects_action(projects_list, selected_project_ids, operation_type)
 
         if operation_type == "refund":
 
@@ -348,30 +343,20 @@ def control_panel():
 
         return jsonify(admin_action_projects=admin_action_projects)
 
-    return render_template("controlpanel.html", admin_projects_list=admin_projects_list)
+    return render_template("control_panel.html", projects_list=projects_list)
 
 
-
-@app.route("/statusupdate", methods=["POST"])
-@freighter_required
-def status_update():
-    # TO DO: Change this to a scheduled task
-
-    try:
-        update_database_status()
-        return make_response("OK", 200)
-    
-    except Exception as e:
-        print(str(e))
-        return apology("Error updating projects status on database", 500)
-
+@app.route("/faq")
+def faq():
+    return render_template("faq.html")
 
 
 @app.route("/filter_projects", methods=["POST"])
 def filter_projects():
-    """ Filter searched projects in controlpanel.html """
+    """ Filter searched projects in control_panel.html """
 
     project_search = {
+        "name": request.form.get("searchProjectName"),
         "category": request.form.get("searchProjectCategory"),
         "status": request.form.get("searchProjectStatus")
     }
@@ -380,8 +365,14 @@ def filter_projects():
         return apology(validate_input(project_search), 400)
 
     try:
-        admin_projects_list = search_projects(request.form.get("searchProjectName"), project_search["category"], project_search["status"])
-        return render_template("controlpanel.html", admin_projects_list=admin_projects_list)
+        projects_list = search_projects(project_search["name"], project_search["category"], project_search["status"])
+        
+        # Get only user's projects
+        if session["public_key"] != admin_account:
+            projects_list = [project for project in projects_list if project["public_key"] == session["public_key"]]
+
+        parent_page = request.form.get("parent_page")
+        return render_template(parent_page, projects_list=projects_list)
     
     except Exception as e:
         print(str(e))

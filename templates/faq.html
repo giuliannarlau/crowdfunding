@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    About Us
+{% endblock %}
+
+{% block main %}
+
+<div class="container" id="faqContainer">
+  <div class="row">
+    <div class="col">
+      <h1 class="fs-2 text-center mt-4">How it works</h1>
+    </div>
+  </div>
+
+  <hr class="mb-5" />
+
+ 
+  <div class="row">
+    <div class="col-lg-6">
+      <ul class="list-outline-orange">
+        <li class="list-group-item">
+          <div class="list-group-title">How do I create a wallet?</div>
+          <div class="item-description">
+            To start, add Freighter's extension to your browser.
+            Then, create a new wallet and save the 12 words. These words let you access
+            your account on different browsers.
+            Remember, our platform only works on TESTNET. You can fund with friendbot
+            using the extension without involving real money.
+          </div>
+        </li>
+        <li class="list-group-item">
+          <div class="list-group-title">How do I start a project?</div>
+          <div class="item-description">
+            To create your project, click on "New Project" after connecting your wallet.
+            You can edit your project on its page. If you reach your goal,
+            the admin transfers the donated lumens after the expiration date.
+            If the goal isn't reached, funds go back to backers.
+            You'll see all your projects on "My Account."
+          </div>
+        </li>
+        <li class="list-group-item">
+          <div class="list-group-title">How can I make a donation?</div>
+          <div class="item-description">
+            You can contribute to any project except your own. The project's page
+            displays all projects, you can search by category or name. If a
+            project misses its goal, you get your donation back. Otherwise, lumens
+            go to the project's creator. Check your donations on "My Account" page.
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="col-lg-6">
+      <ul class="list-outline-orange">
+        <li class="list-group-item">
+          <div class="list-group-title">How the admin account works?</div>
+          <div class="item-description">
+            All projects are shown on "Control Panel" page. Select the projects
+            that you want to fund or refund and click on
+            the respective action button. You can't do both simultaniously,
+            it's configured to make only fund or refund transactions.
+            For testing purposes, admin can donate to specific projects.
+          </div>
+        </li>
+        <li class="list-group-item">
+          <div class="list-group-title">How the transactions work?</div>
+          <div class="item-description">
+            Each transaction has one or more operations.
+            Every donation has a single operation per transaction, but the admin
+            can fund or refund multiple projects, so it can be one or more operations
+            per transaction.
+          </div>
+        </li>
+        <li class="list-group-item">
+          <div class="list-group-title">How the updates work?</div>
+          <div class="item-description">
+            A lambda function updates project status daily.
+            All the transactions and projects save instantly on RDS
+            and S3 databases.
+          </div>
+        </li>
+        <li class="list-group-item">
+          <div class="list-group-title">Can I test it on localhost?</div>
+          <div class="item-description">
+            Absolutely! Freighter requires HTTPS  for signing transactions.
+            For testing in Flask, a self-signed certificate is fine.
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

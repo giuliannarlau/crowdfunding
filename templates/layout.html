@@ -27,7 +27,7 @@
       referrerpolicy="no-referrer"
     ></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/10.4.1/stellar-sdk.js"></script>
-    <title>Lux | {% block title %}{% endblock %}</title>
+    <title>Lux | {% block title %} {% endblock %}</title>
   </head>
 
   <body>
@@ -53,36 +53,46 @@
             <li class="nav-item">
               <a class="nav-link" href="/projects">PROJECTS</a>
             </li>
-            {% if session["public_key"] %} {% if session["public_key"] ==
-            admin_account %}
             <li class="nav-item">
-              <a class="nav-link" href="/controlpanel">CONTROL PANEL</a>
+              <a class="nav-link" href="/faq">FAQ</a>
             </li>
-            {% else %}
+            {% if session["public_key"] %}
+              {% if session["public_key"] == admin_account %}
+                <li class="nav-item">
+                  <a class="nav-link" href="/control_panel">CONTROL PANEL</a>
+                </li>
+              {% else %}
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    MY ACCOUNT
+                </a>
+                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <a class="dropdown-item" href="/my_projects">Projects</a>
+                    <a class="dropdown-item" href="/my_donations">Donations</a>
+                </div>
+            </li>
             <li class="nav-item">
-              <a class="nav-link" href="/myaccount">MY ACCOUNT</a>
+              <a class="nav-link" href="/new_project">NEW PROJECT</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/newproject">NEW PROJECT</a>
-            </li>
-            {% endif %} {% endif %}
+              {% endif %}
+            {% endif %}
           </ul>
 
           <div class="d-flex justify-content-center justify-content-md-end">
             {% if not session["public_key"] %}
-            <button
-              type="button"
-              class="btn btn-outline-dark"
-              id="connectButton"
-              data-bs-toggle="modal"
-              data-bs-target="#connectWalletModal"
-            >
-              CONNECT
-            </button>
+              <button
+                type="button"
+                class="btn btn-outline-darkblue"
+                id="connectButton"
+                data-bs-toggle="modal"
+                data-bs-target="#connectWalletModal"
+              >
+                CONNECT
+              </button>
             {% else %}
-            <a type="button" class="btn btn-outline-dark" href="/logout"
-              >DISCONNECT</a
-            >
+              <a type="button" class="btn btn-outline-darkblue" href="/logout"
+                >DISCONNECT</a
+              >
             {% endif %}
           </div>
         </div>
@@ -115,7 +125,7 @@
             <div class="modal-footer">
               <button
                 type="button"
-                class="btn btn-dark px-3"
+                class="btn btn-darkblue px-3"
                 data-bs-dismiss="modal"
                 onclick="location.reload()"
               >
@@ -144,7 +154,7 @@
           <div class="modal-body">
             <form id="connectWalletForm" method="post" name="connectWalletForm">
               <button
-                class="btn btn-dark btn-lg"
+                class="btn btn-darkblue btn-xlarge"
                 id="connectButton"
                 name="connectButton"
                 onclick="fetchKey()"
@@ -152,18 +162,19 @@
                 Connect with Freighter
               </button>
               <a
-                class="btn btn-outline-dark btn-lg"
+                class="btn btn-outline-darkblue btn-xlarge"
                 href="https://www.freighter.app/"
                 id="createWallet"
                 target="_blank"
-                >Create new wallet</a
-              >
+                >
+                Create new wallet
+              </a>
             </form>
           </div>
           <div class="modal-footer">
             <button
               type="button"
-              class="btn btn-dark px-3"
+              class="btn btn-darkblue px-3"
               data-bs-dismiss="modal"
             >
               Close
@@ -198,10 +209,10 @@
                 <a class="nav-link" href="/about">ABOUT US</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="/about">CONTACT</a>
+                <a class="nav-link" href="/projects">PROJECTS</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="/projects">PROJECTS</a>
+                <a class="nav-link" href="/faq">FAQ</a>
               </li>
             </ul>
           </div>
