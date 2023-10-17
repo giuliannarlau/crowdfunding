@@ -7,6 +7,8 @@ db_user = os.environ['DB_USER']
 db_password = os.environ['DB_PASSWORD']
 db_name = os.environ['DB_NAME']
 
+s3_bucket_name = os.environ.get('S3_BUCKET_NAME')
+
 db_config = {
     "host": db_host,
     "user": db_user,

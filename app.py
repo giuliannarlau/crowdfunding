@@ -1,7 +1,7 @@
 import os
 import time
 
-from db_config import connection_pool
+from db_config import connection_pool, s3_bucket_name
 from dotenv import load_dotenv
 from flask import Flask, jsonify, make_response, redirect, render_template, request, session, url_for
 from helpers import apology, check_amount, check_projects_action, format_date, freighter_required, search_donations_history, search_projects, search_refund_operations, search_supported_projects, update_transactions_database, upload_image, validate_input
@@ -270,7 +270,7 @@ def new_project():
         
         file_url = None
         try:
-            file_url = upload_image(project["image"])
+            file_url = upload_image(project["image"], s3_bucket_name)
         
         except Exception as e:
             print(str(e))

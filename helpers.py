@@ -5,8 +5,10 @@ import secrets
 
 from db_config import connection_pool
 from datetime import datetime
+from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session
 from functools import wraps
+
 
 app = Flask(__name__)
 
@@ -213,10 +215,14 @@ def search_projects(name="", category="", status="", id=""):
     )
     params = ("%" + name + "%", "%" + category + "%", "%" + status + "%")
 
+    print(f"Tipo do id recebido: {type(id)}")
+    print(f"Id recebido: {id}")
     if id:
         query = query + " AND id = %s "
         params = params + (id,)
     
+    print(query)
+    print(params)
     db.execute(query, params)
     projects_list = db.fetchall()
     
@@ -224,11 +230,12 @@ def search_projects(name="", category="", status="", id=""):
         db.close()
         connection.close()
 
-    # This function assumes expire_date is type datetime. Move with care.
+    # NOTE: This function assumes expire_date is type datetime. Move with care.
     projects_list = calculate_project_days_left(projects_list)
     
     # Format friendly date
     for project in projects_list:
+        print(f"Projeto da lista: {project}")
         project["expire_date"] = format_date(project["expire_date"], "medium_string")
 
     return calculate_project_progress(projects_list)
@@ -285,6 +292,7 @@ def search_supported_projects():
 
     return calculate_project_progress(projects_list)
 
+
 """ UPDATE DATABASES """
 
 def update_transactions_database(hash):
@@ -332,7 +340,7 @@ def update_transactions_database(hash):
             connection.close()
 
 
-def upload_image(base64_img):
+def upload_image(base64_img, s3_bucket_name):
     """ Uploads the image on database """
     
     # Decode to bytes avoiding padding error
@@ -344,10 +352,9 @@ def upload_image(base64_img):
         random_hex = secrets.token_hex(8)
         filename = random_hex + ".png"
 
-        bucket_name = 'cf-img-uploads'
         s3_client = boto3.client('s3')
-        s3_client.put_object(Bucket='cf-img-uploads', Key=filename, Body=image_bytes, ContentType='image/png')
-        file_url = f"https://{bucket_name}.s3.amazonaws.com/{filename}"
+        s3_client.put_object(Bucket=s3_bucket_name, Key=filename, Body=image_bytes, ContentType='image/png')
+        file_url = f"https://{s3_bucket_name}.s3.amazonaws.com/{filename}"
 
         return file_url
 

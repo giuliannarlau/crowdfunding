@@ -19,7 +19,6 @@ function getCurrentDate(minDateInput) {
 
 // Check if user connected wallet
 function checkUser(element) {
-    console.log(element);
     if (!element.name) {
         document.getElementById("modalBody").innerHTML = "You need to connect you wallet first!";
         const modal = new bootstrap.Modal(document.getElementById("alertModal"));
@@ -27,7 +26,7 @@ function checkUser(element) {
         return false;
     } else {
         if (element.id == "startProjectLink") {
-            window.location.href = "/newproject";
+            window.location.href = "/new_project";
         }
     }
     return true;
